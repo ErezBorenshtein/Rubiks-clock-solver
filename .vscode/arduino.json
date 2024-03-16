@@ -1,0 +1,5 @@
+{
+    "configuration": "cpu=atmega328",
+    "board": "arduino:avr:nano",
+    "sketch": "Code\\arduino_code\\Steeper_motor_test.ino"
+}
