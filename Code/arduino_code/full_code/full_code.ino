@@ -1,105 +1,6 @@
 #include <AccelStepper.h>
 #include <MultiStepper.h>
 
-/*const int RELAY_PIN = 7;  // the Arduino pin, which connects to the IN pin of relay
-
-
-void setup() {
-  // initialize digital pin 3 as an output.
-  pinMode(RELAY_PIN, OUTPUT);
-}
-
-// the loop function runs over and over again forever
-void loop() {
-  digitalWrite(RELAY_PIN, HIGH); // uhlock the door
-  delay(5000);
-  digitalWrite(RELAY_PIN, LOW);  // lock the door   
-  delay(5000);
-}
-*/
-/*
-// Define the number of steps per revolution for your stepper motors
-const int stepsPerRevolution = 200000;
-
-// Define the motor pins
-const int motor1StepPin = 2;
-const int motor1DirPin = 5;
-
-const int motor2StepPin = 3;
-const int motor2DirPin = 6;
-
-const int motor3StepPin = 4;
-const int motor3DirPin = 7;
-
-const int motor4StepPin = 12;
-const int motor4DirPin = 13;
-
-// Create instances of the AccelStepper class for each motor
-AccelStepper stepperUR(1, motor1StepPin, motor1DirPin); // (Type:driver, STEP, DIR)
-AccelStepper stepperDR(1, motor2StepPin, motor2DirPin);
-AccelStepper stepperDL(1, motor3StepPin, motor3DirPin);
-AccelStepper stepperUL(1, motor4StepPin, motor4DirPin);
-
-// Create an array to hold the stepper motors
-AccelStepper* steppers[] = {&stepperUR, &stepperDR, &stepperDL, &stepperUL};
-
-// Create an instance of the MultiStepper class
-MultiStepper multiStepper;
-
-void setup() {
-
-  Serial.begin(9600);
-  // Set the maximum speed and acceleration for each motor
-  for (int i = 0; i < 4; i++) {
-    steppers[i]->setMaxSpeed(3800);
-    steppers[i]->setAcceleration(10000);
-  }
-
-  // Add each stepper motor to the MultiStepper instance
-  for (int i = 0; i < 4; i++) {
-    multiStepper.addStepper(*steppers[i]);
-  }
-}
-
-void loop() {
-  // Set the target positions for each motor
-  long positions[] = {stepsPerRevolution, -stepsPerRevolution, stepsPerRevolution, -stepsPerRevolution}; // Adjust as needed
-  long positions2[] = {-stepsPerRevolution, stepsPerRevolution, -stepsPerRevolution, stepsPerRevolution}; // Adjust as needed
-
-  // Move all motors to their target positions
-  multiStepper.moveTo(positions);
-
-  // Move all motors simultaneously
-  while (multiStepper.run()) {
-    // Do nothing while motors are moving
-  }
-
-  // Delay for a moment before the next movement
-  delay(1000);
-
-  multiStepper.moveTo(positions2);
-
-  // Move all motors simultaneously
-  while (multiStepper.run()) {
-    // Do nothing while motors are moving
-  }
-
-  // Delay for a moment before the next movement
-  delay(1000);
-  
-  stepperDR.moveTo(3200); // Set desired move: 800 steps (in quater-step resolution that's one rotation)
-  stepperDR.runSpeedToPosition();
-  delay(1000);
-  stepperDR.moveTo(0); // Set desired move: 800 steps (in quater-step resolution that's one rotation)
-  stepperDR.runSpeedToPosition();
-  delay(5000);
-
-
-}*/
-
-#define UP 0
-#define DOWN 1
-
 class Solenoids{
   public:
 
@@ -136,17 +37,14 @@ class Solenoids{
     }
 
     void push(int pin, int side){
-      if(side == 0){
-        //return;
-      }
       int actualPin = pin+side; // Top or bottom solenoids
       digitalWrite(actualPin,HIGH);
+
       Serial.println("pushed: "+String(actualPin));
     }
 
     void reset(){
       set(1,1,1,1);
-      delay(10000);
     }
 
     void set(int stateUR, int stateDR, int stateDL, int stateUL){
@@ -154,8 +52,8 @@ class Solenoids{
       push(solenoidTDR,stateDR);
       push(solenoidTDL,stateDL);
       push(solenoidTUL,stateUL);
-      delay(18);
       //delay(1000);
+      delay(40);
 
       for(int i =solenoidTUR; i <= solenoidBUL;i++){
           digitalWrite(i,LOW);
@@ -167,7 +65,6 @@ class Solenoids{
 
 class Clock{
   public:
-  
     float oneHourDeg;
     int stepsPerHour;
 
@@ -195,9 +92,9 @@ class Clock{
 
       steppers[0] = (stepperUR = new AccelStepper(1, 2, 5));
       steppers[1] = (stepperDR = new AccelStepper(1, 3, 6));
+      //steppers[1] = (stepperDR = new AccelStepper(1, 6, 3));
       steppers[2] = (stepperDL = new AccelStepper(1, 4, 7));
       steppers[3] = (stepperUL = new AccelStepper(1, 12, 13));
-
       solenoids.setUp();
 
       for(int i=0;i<4;i++){
@@ -205,10 +102,12 @@ class Clock{
 
         multiSteppers.addStepper(*stepper);
 
-        stepper->setMaxSpeed(3800); // Set maximum speed value for the stepper
+        //stepper->setMaxSpeed(1000); // Set maximum speed value for the stepper
+        stepper->setMaxSpeed(3500); // Set maximum speed value for the stepper
         stepper->setAcceleration(10000); // Set acceleration value for the stepper
         stepper->setCurrentPosition(0); // Set the current position to 0 steps
-        stepper->setSpeed(2500);
+        //stepper->setSpeed(1000);
+        stepper->setSpeed(3500);
 
       }
 
@@ -262,16 +161,36 @@ class Clock{
 class ClockOperator{
   public:
     Clock clock;
-    int states[4];
+    int wheels_states[4];
+    int current_pins_states[4]; //used for monitoring the state of the clock pins
 
     ClockOperator(){
       for (int i = 0; i < 4; i++) {
-            states[i] = 0;
+            wheels_states[i] = 0;
         }
     }
 
     void rotate(String command){
       //Serial.println(command);
+      
+      int moving_wheel_pin_state = (command[3]-'0' == current_pins_states[0]); //The state of the pins around the moving wheel
+      Serial.println("command[3]-'0': "+String(command[3]-'0')+" current_pins_states[0]: "+String(current_pins_states[0]));
+      Serial.println("moving_wheel_pin_state: "+String(moving_wheel_pin_state));
+      Serial.println("pins: "+String(current_pins_states[0])+String(current_pins_states[1])+String(current_pins_states[2])+String(current_pins_states[3]));
+      for(int i=1;i<4;i++){
+        int expected_pin_state = moving_wheel_pin_state==(command[i+3]-'0');//The state of the current pin near the wheel
+        Serial.println("expected_pin_state: "+String(expected_pin_state));
+        Serial.println("current_pins_states[i]: "+String(current_pins_states[i]));
+
+        if(expected_pin_state != current_pins_states[i]){
+          Serial.println("i" +String(i));
+          Serial.println("You almost broke your clock! Be careful next time!");
+          while(true){ //Stop the program 
+            delay(10);
+          }
+        }
+      }
+
       int positions[4];
       int hours = command[2]-'0';
       if(command[1] == '-'){
@@ -282,42 +201,41 @@ class ClockOperator{
       for(int i=3 ; i<7 ; i++){
         //Serial.println(command[i]);
         if(command[i] == '0'){
-          positions[i-3] =states[i-3];
+          positions[i-3] =wheels_states[i-3];
         }
         else{
 
-          positions[i-3] = states[i-3]+hours;
+          positions[i-3] = wheels_states[i-3]+hours;
         }
       }
-      /*Serial.println(positions[0]);
-      Serial.println(positions[1]);
-      Serial.println(positions[2]);
-      Serial.println(positions[3]);*/
       clock.rotate(positions);
     }
 
-    int* ClockOperator::getPositions(String command) {
-    static int positions[4]; // Array to store positions
+    /*int* ClockOperator::getPositions(String command) {
+      static int positions[4]; // Array to store positions
 
-    int hours = command[2] - '0';
-    if (command[1] == '-') {
-        hours *= -1;
-    }
+      int hours = command[2] - '0';
+      if (command[1] == '-') {
+          hours *= -1;
+      }
 
-    for (int i = 3; i < 7; i++) {
-        if (command[i] == '0') {
-            positions[i - 3] = states[i - 3]; // If the position is 0, use the current state
-        } else {
-            positions[i - 3] = states[i - 3] + hours; // Otherwise, add/subtract hours from the current state
-        }
-    }
-
-    return positions;
-}
+      for (int i = 3; i < 7; i++) {
+          if (command[i] == '0') {
+              positions[i - 3] = states[i - 3]; // If the position is 0, use the current state
+          } else {
+              positions[i - 3] = states[i - 3] + hours; // Otherwise, add/subtract hours from the current state
+          }
+      }
+      return positions;
+    }*/
 
 
     void setPins(String command){
-        clock.setPins(command[1]-'0',command[2]-'0' ,command[3]-'0' ,command[4]-'0');
+      current_pins_states[0] = command[1]-'0';
+      current_pins_states[1] = command[2]-'0';
+      current_pins_states[2] = command[3]-'0';
+      current_pins_states[3] = command[4]-'0';
+      clock.setPins(command[1]-'0',command[2]-'0' ,command[3]-'0' ,command[4]-'0');
     }
 
     bool isCommandValid(String command){
@@ -362,6 +280,7 @@ class ClockOperator{
       if(command[0] == 'p'){
         setPins(command);
       }
+      delay(5000);
     }
 
 
@@ -372,10 +291,10 @@ class ClockOperator{
       int allCommands[21][4];
 
       for(int i =0; i<numOfCommands;i++){
-        getPositions(solution.substring(i*chunkSize,(i+1)*chunkSize-1))
+        getPositions(solution.substring(i*chunkSize,(i+1)*chunkSize-1));
         runCommand(solution.substring(i*chunkSize,(i+1)*chunkSize-1));
       }
-    }*/
+    }
 
     void solve(String solution){
       int chunkSize = 7 + 1;
@@ -391,9 +310,13 @@ class ClockOperator{
       }
 
 
-    }
+    }*/
 
     void reset(){
+      Serial.println("Resetting...");
+      for(int i =0; i<4;i++){
+        current_pins_states[i] =0;
+      }
       clock.reset();
     }
 };
@@ -412,28 +335,36 @@ ClockOperator clockOperator;
 
 void setup() {
   Serial.begin(9600);
-  
+  Serial.println("Starting setup...");
+  clockOperator.reset();
+  Serial.println("Ending setup...");
+
 }
 
 void loop() {
-  delay(5000); //DO NOT DELETE
+  delay(5000); //!DO NOT DELETE
 
-  /*String solution = readSolution();
-  Serial.println(solution);
-  if(solution.length()>0){
-    long start = millis();
-    clockOperator.solve(solution);
-    long duration = millis()-start;
-    Serial.println(duration);
+  /*for(int i =0; i<3;i++){
+    delay(2500);
+    clockOperator.runCommand("p000000");
+    delay(2500);
+    clockOperator.runCommand("p111100");
+    //clockOperator.runCommand("r+21001");
+    
   }*/
-  //clockOperator.reset();
+  clockOperator.runCommand("p100100");
+  clockOperator.runCommand("r-61001");
   clockOperator.runCommand("p100000");
-  //delay(1000);
-  //clockOperator.runCommand("r+11000");
-  //delay(1000);
-  //clockOperator.runCommand("p011100");
 
   delay(1000000);
+  
 
+  /*for(int i =0; i<6;i++){
+    String num = String(i);
+    String new_command = "r+"+num+"1101";
+    clockOperator.runCommand(new_command);
+    delay(1000);
+  }*/
+  
 
 }
