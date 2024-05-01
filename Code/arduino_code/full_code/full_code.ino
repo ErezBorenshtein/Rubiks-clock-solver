@@ -1,5 +1,9 @@
-#include <AccelStepper.h>
-#include <MultiStepper.h>
+//#include <AccelStepper.h>
+//#include <MultiStepper.h>
+#include <Servo.h>
+
+#define LIMIT_PIN 18
+#define MOTOR_ENABLE_PIN 19
 
 class Solenoids{
   public:
@@ -39,26 +43,33 @@ class Solenoids{
     void push(int pin, int side){
       int actualPin = pin+side; // Top or bottom solenoids
       digitalWrite(actualPin,HIGH);
-
-      Serial.println("pushed: "+String(actualPin));
+      String pins_names[] = {"UR-D","UR-U","DR-D","DR-U","DL-D","DL-U","UL-D","UL-U"};
+      //Serial.println("pushed: "+pins_names[actualPin-22]);
+      
     }
 
     void reset(){
       set(1,1,1,1);
     }
 
+    long last_push = 0;
+
     void set(int stateUR, int stateDR, int stateDL, int stateUL){
       push(solenoidTUR,stateUR);
       push(solenoidTDR,stateDR);
       push(solenoidTDL,stateDL);
       push(solenoidTUL,stateUL);
+      //Serial.println(millis()-last_push);
+      last_push = millis();
+      //Serial.println();
       //delay(1000);
-      delay(40);
+      delay(50);
 
       for(int i =solenoidTUR; i <= solenoidBUL;i++){
           digitalWrite(i,LOW);
 
       }
+      //delay(500);
     }
 };
 
@@ -173,24 +184,20 @@ class ClockOperator{
     void rotate(String command){
       //Serial.println(command);
       
+      //check if pin's states is valid for rotation
       int moving_wheel_pin_state = (command[3]-'0' == current_pins_states[0]); //The state of the pins around the moving wheel
-      Serial.println("command[3]-'0': "+String(command[3]-'0')+" current_pins_states[0]: "+String(current_pins_states[0]));
-      Serial.println("moving_wheel_pin_state: "+String(moving_wheel_pin_state));
-      Serial.println("pins: "+String(current_pins_states[0])+String(current_pins_states[1])+String(current_pins_states[2])+String(current_pins_states[3]));
       for(int i=1;i<4;i++){
         int expected_pin_state = moving_wheel_pin_state==(command[i+3]-'0');//The state of the current pin near the wheel
-        Serial.println("expected_pin_state: "+String(expected_pin_state));
-        Serial.println("current_pins_states[i]: "+String(current_pins_states[i]));
 
         if(expected_pin_state != current_pins_states[i]){
-          Serial.println("i" +String(i));
-          Serial.println("You almost broke your clock! Be careful next time!");
+          Serial.println("pin state is not valid expected: "+String(expected_pin_state)+" current: " + String(current_pins_states[i]));
           while(true){ //Stop the program 
             delay(10);
           }
         }
       }
 
+      //calculate how much each wheel need to move
       int positions[4];
       int hours = command[2]-'0';
       if(command[1] == '-'){
@@ -202,33 +209,16 @@ class ClockOperator{
         //Serial.println(command[i]);
         if(command[i] == '0'){
           positions[i-3] =wheels_states[i-3];
+
         }
         else{
 
           positions[i-3] = wheels_states[i-3]+hours;
+          wheels_states[i-3] = positions[i-3]; //update the current wheel state
         }
       }
       clock.rotate(positions);
     }
-
-    /*int* ClockOperator::getPositions(String command) {
-      static int positions[4]; // Array to store positions
-
-      int hours = command[2] - '0';
-      if (command[1] == '-') {
-          hours *= -1;
-      }
-
-      for (int i = 3; i < 7; i++) {
-          if (command[i] == '0') {
-              positions[i - 3] = states[i - 3]; // If the position is 0, use the current state
-          } else {
-              positions[i - 3] = states[i - 3] + hours; // Otherwise, add/subtract hours from the current state
-          }
-      }
-      return positions;
-    }*/
-
 
     void setPins(String command){
       current_pins_states[0] = command[1]-'0';
@@ -258,7 +248,7 @@ class ClockOperator{
             return false;
       }
       if(command[0] =='p'){
-        if(command[5] != '0' && command[6]!= '0')
+        if(command[5] != ' ' && command[6]!= ' ')
           return false;
         for(int i =3; i<7;i++)
           if(command[i] >'1' && command[i]<'0')
@@ -268,35 +258,37 @@ class ClockOperator{
     }
 
     void runCommand(String command){
+      //waitUntilMotorEnabeld();
+
+      //Serial.println(command);
+
       if(!isCommandValid(command)){
         Serial.println("command is not valid");
         return;
       }
-
-      if(command[0] == 'r'){
+      //Serial.println(1);
+      if(command[0] == 'r' && command[2] != '0'){
         //Serial.println("rotate");
         rotate(command);
       }
       if(command[0] == 'p'){
         setPins(command);
       }
-      delay(5000);
+      //Serial.println(2);
+      delay(100);
+      //delay(100);
     }
 
-
-
-    /*void solve(String solution){
+    void solve(String solution){
       int chunkSize= 7+1;
       int numOfCommands = solution.length()/chunkSize;
-      int allCommands[21][4];
 
       for(int i =0; i<numOfCommands;i++){
-        getPositions(solution.substring(i*chunkSize,(i+1)*chunkSize-1));
         runCommand(solution.substring(i*chunkSize,(i+1)*chunkSize-1));
       }
     }
 
-    void solve(String solution){
+    /*void solve(String solution){
       int chunkSize = 7 + 1;
       int numOfCommands = solution.length() / chunkSize;
       int allCommands[numOfCommands][4]; 
@@ -321,50 +313,118 @@ class ClockOperator{
     }
 };
 
+
 String readSolution(){
+  String commands;
+  if (Serial.available() > 0) {
+    // Read the incoming data
+    commands = Serial.readStringUntil('\n');
+    
+    // Print the received string
+    Serial.println("Received: " + commands);
+  }
+  return commands;
+}
+
+/*String readSolution(){
+  String commands;
   while(!Serial.available()){
     delay(10);
   }
-  String solution = Serial.readString();
-  Serial.println(solution);
-  return solution;
-}
-
+  commands = Serial.readStringUntil("\n");
+  while(true){
+    String message = Serial.readStringUntil("\n");
+    if(message == "end")
+      break;
+    commands+= message;
+    Serial.println("message delivered: "+message);
+  }
+  Serial.println("final commands: "+commands);
+  delay(100);
+  return commands;
+}*/
 
 ClockOperator clockOperator;
+String commands;
 
-void setup() {
+void setup2() {
   Serial.begin(9600);
-  Serial.println("Starting setup...");
+  while (!Serial) {
+    delay(10); // Wait for serial port to connect
+  }
+  Serial.println("ready");
+
+  pinMode(LIMIT_PIN, INPUT_PULLUP);
+  pinMode(MOTOR_ENABLE_PIN, OUTPUT);
+  
+  while(!Serial.available()){
+    delay(10);
+  }
+
+  if (Serial.available() > 0) {
+    // Read the incoming data
+    commands = readSolution();
+  }
+
+  Serial.println("end of read");
+
+  //clockOperator.reset();  needed only after optimizing pin settings
+  delay(1000);
+  
+
+}
+
+void setup(){
+  Serial.begin(115200);
+  
+  pinMode(LIMIT_PIN, INPUT_PULLUP);
+  pinMode(MOTOR_ENABLE_PIN, OUTPUT);
+  
+  attachInterrupt(digitalPinToInterrupt(18), powerEnabler, CHANGE);
+  
+  Serial.println("somethng");
+  //clockOperator.reset();  needed only after optimizing pin settings
+  delay(1000);
+}
+
+void powerEnabler(){
+  int mode;
+  digitalWrite(MOTOR_ENABLE_PIN, LOW);
+  do{
+
+    mode = digitalRead(LIMIT_PIN);
+
+  }while(mode==1);
+  digitalWrite(MOTOR_ENABLE_PIN, HIGH);
+}
+
+
+void loop2() {
+
+  unsigned long start_time = millis();
+  //clockOperator.runCommand("p100100");
+  //clockOperator.runCommand("r-21001");
+  clockOperator.solve(commands);
   clockOperator.reset();
-  Serial.println("Ending setup...");
-
-}
-
-void loop() {
-  delay(5000); //!DO NOT DELETE
-
-  /*for(int i =0; i<3;i++){
-    delay(2500);
-    clockOperator.runCommand("p000000");
-    delay(2500);
-    clockOperator.runCommand("p111100");
-    //clockOperator.runCommand("r+21001");
-    
-  }*/
-  clockOperator.runCommand("p100100");
-  clockOperator.runCommand("r-61001");
-  clockOperator.runCommand("p100000");
-
+  Serial.println("total time: "+String(millis()- start_time));
   delay(1000000);
-  
-
-  /*for(int i =0; i<6;i++){
-    String num = String(i);
-    String new_command = "r+"+num+"1101";
-    clockOperator.runCommand(new_command);
-    delay(1000);
-  }*/
-  
 
 }
+
+void loop(){
+  clockOperator.runCommand("p0000  ");
+  clockOperator.runCommand("p0001  ");
+  clockOperator.runCommand("p0010  ");
+  clockOperator.runCommand("p0011  ");
+  clockOperator.runCommand("p0100  ");
+  clockOperator.runCommand("p0101  ");
+  clockOperator.runCommand("p0110  ");
+  clockOperator.runCommand("p0111  ");
+  clockOperator.runCommand("p1000  ");
+  clockOperator.runCommand("p1001  ");
+  clockOperator.runCommand("p1010  ");
+  clockOperator.runCommand("p1011  ");
+  clockOperator.runCommand("p1100  ");
+  clockOperator.runCommand("p1101  ");
+  clockOperator.runCommand("p1111  ");
+}  

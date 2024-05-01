@@ -183,7 +183,6 @@ class Clock:
 
         #rotates the wheel from the back side and returns the wheels that were rotated
         wheels_side_2 =self.rotate_internal(self.wheel_mapping_rotated[wheel], -num_of_rot, self.BACK, self.flip_pins())
-        #self.print_clock()
 
         #add the wheels that were rotated to the final movement
         if len(wheels_side_1) == 0: #for each move just one side is rotated, if this side is the back we'll conv
@@ -193,7 +192,7 @@ class Clock:
             for wheel in wheels_side_1:
                 if wheel in [0,2,6,8,9,11,15,17]: #the wheels that are in the corners of the clock
                     wheels_side_2.append(wheel)
-            #wheels_side_1 = wheels_side_2
+            wheels_side_1 = wheels_side_2
             i=0     
             for wheel in wheels_side_1:
                 wheels_side_1[i] =self.pin_mapping_reversed[self.pin_num_mapping[wheel][0]] #convert the wheels to the pins
@@ -206,11 +205,17 @@ class Clock:
 
         if num_of_rot>6: # you can get top any position by rotating the wheel maximum 6 times(clockwise or counterclockwise)
             num_of_rot = -(12%num_of_rot)
+        if num_of_rot<-6:
+            num_of_rot = num_of_rot+12
 
         final_movement_str = f"r:{'+' if num_of_rot >= 0 else ''}{num_of_rot}"
 
         for i in range(len(final_movement)):
             final_movement_str+=final_movement[i]+","
+
+        print(final_movement_str)
+        self.print_clock()
+
         return final_movement_str
         
 
@@ -229,21 +234,21 @@ class Clock:
                         # Iterate through the wheels around the pin and add them to the final movement
                         for wheel_around_part in self.wheels_around_pin[a]:
                             final_movement.append(wheel_around_part+offset)
-                        a+=1
-            # Remove duplicates from the final movement
-            final_movement = list(set(final_movement))
+                    a+=1
+                # Remove duplicates from the final movement
+                final_movement = list(set(final_movement))
 
-            # Rotate the clocks in the final movement by the specified number of rotations
-            for move in final_movement:
-                self.clock[move]+=num_of_rot
-                self.clock[move] = self.clock[move]%12
+                # Rotate the clocks in the final movement by the specified number of rotations
+                for move in final_movement:
+                    self.clock[move]+=num_of_rot
+                    self.clock[move] = self.clock[move]%12
 
-        else:
-            # If the wheel connected to the pin is not up
-            for option in range(4):
-                if pins[option] == 0:
-                    self.clock[self.pin_mapping_reversed[option]+offset] += num_of_rot
-                    self.clock[self.pin_mapping_reversed[option]+offset] = self.clock[self.pin_mapping_reversed[option]+offset]%12
+            else:
+                # If the wheel connected to the pin is not up
+                for option in range(4):
+                    if pins[option] == 0:
+                        self.clock[self.pin_mapping_reversed[option]+offset] += num_of_rot
+                        self.clock[self.pin_mapping_reversed[option]+offset] = self.clock[self.pin_mapping_reversed[option]+offset]%12
         return final_movement
 
     def scramble_to_rotation(self, scramble):
@@ -306,12 +311,16 @@ class Clock:
         else:
             self.clock_pins[self.pin_num_mapping[self.wheel_mapping_str[move]][0]] = 1
 
+        #ret_val = f"p{self.clock_pins[0]}{self.clock_pins[1]}{self.clock_pins[2]}{self.clock_pins[3]}"
+
         if is_rotated == True: #if the move is after a y2 rotation the pins need to be flipped
             flipped_pins = self.flip_pins()
             for pin in range(4):
                 self.clock_pins[pin] = flipped_pins[pin]
-
-        return f"p{self.clock_pins[0]}{self.clock_pins[1]}{self.clock_pins[2]}{self.clock_pins[3]}"
+                
+        ret_val = f"p{self.clock_pins[0]}{self.clock_pins[1]}{self.clock_pins[2]}{self.clock_pins[3]}"
+        print(ret_val)
+        return ret_val
 
     def count_clocks_in_same_time(self):
 
@@ -391,6 +400,7 @@ class Clock:
 
         #First 2 simul moves
         commands.append(self.set_pins("UL",True))
+        
         commands.append(self.rotate_wheel("UL",solution[0][0],True))
         commands.append(self.rotate_wheel("L",solution[0][1],True))
 
@@ -472,7 +482,8 @@ class Clock:
             else:
                 final_command+="0"
         else:
-            final_command = command+"00"
+            #!final_command = command+"00"
+            final_command = command+"  "
         return final_command
     
     def prepare_commands(self,commands):
@@ -502,7 +513,7 @@ class Clock:
                 
             else:
                 if optimized_commands[i][0] == "p":
-                    new_commands.append(optimized_commands[i]+"00")
+                    new_commands.append(optimized_commands[i]+"00") #the 00 is because I want all of the commands to have the same length
 
         for i in new_commands:
             new_commands_str+=i+" "
@@ -512,15 +523,17 @@ class Clock:
 
 def main():
     clock = Clock()
-    scramble = "UR1+ DR4- DL2- UL2- U3- R1+ D1- L3+ ALL5- y2 U2- R2+ D1+ L5- ALL0+"
-    clock.scramble(scramble)
+    #scramble = "UR1+ DR4- DL2- UL2- U3- R1+ D1- L3+ ALL5- y2 U2- R2+ D1+ L5- ALL0+"
+    #clock.scramble(scramble)
     #clock_instance.print_clock()
-    commands =clock.solve_clock_7_simul()
-    commands = clock.prepare_commands(commands)
-    commands = "p011100 r-21000 r-20111 p001100 r-31100 r-30011 p000100 r+40001 r-31110 p010100 r+10101 r+61010 p010000 r-50100 r-41011 p110000 r-51100 r+10011 p110100 r-21101 r+10010"
-    new_commands = clock.optimize_commnds_7_simul(commands)
-    print(new_commands)
-    """clock.set_clock([
+    #commands =clock.solve_clock_7_simul()
+    #commands = clock.prepare_commands(commands)
+    #commands = "p011100 r-21000 r-20111 p001100 r-31100 r-30011 p000100 r+40001 r-31110 p010100 r+10101 r+61010 p010000 r-50100 r-41011 p110000 r-51100 r+10011 p110100 r-21101 r+10010"
+    #new_commands = clock.optimize_commnds_7_simul(commands)
+    #print(commands)
+    #scramble = "UR1+ DR4- DL2- UL2- U3- R1+ D1- L3+ ALL5- y2 U2- R2+ D1+ L5- ALL0+"
+    #clock.scramble(scramble)
+    clock.set_clock([
                     #front
                     1,1,1,
                     1,1,1,
@@ -529,7 +542,10 @@ def main():
                     11,0,11,
                     0,0,0,
                     0,0,0])
-    print(clock.count_clocks_in_same_time())"""
+    commands = clock.solve_clock_7_simul()
+    clock.print_clock()
+    new_commands = clock.prepare_commands(commands)
+    print(new_commands)
 
     
 
