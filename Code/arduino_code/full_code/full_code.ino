@@ -1,5 +1,5 @@
-//#include <AccelStepper.h>
-//#include <MultiStepper.h>
+#include <AccelStepper.h>
+#include <MultiStepper.h>
 #include <Servo.h>
 
 #define LIMIT_PIN 18
@@ -93,7 +93,7 @@ class Clock{
     Clock(){
 
       /*
-      //with 1/32 resolution(2 jumpers)
+      ///with 1/32 resolution(2 jumpers)
       
       oneHourDeg = 30.0*(0.7865); 
       stepsPerHour =(int)(3200.0/360.0)*oneHourDeg;*/
@@ -427,4 +427,5 @@ void loop(){
   clockOperator.runCommand("p1100  ");
   clockOperator.runCommand("p1101  ");
   clockOperator.runCommand("p1111  ");
+
 }  

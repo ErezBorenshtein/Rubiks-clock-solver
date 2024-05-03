@@ -1,3 +1,4 @@
+#include <Servo.h>
 
 #define LIMIT_PIN 40
 #define MOTOR_ENABLE_PIN 41
@@ -5,8 +6,7 @@ int lastEnableMode = 0;
 void setup() {
 
   //start serial connection
-
-  Serial.begin(9600);
+  /*Serial.begin(9600);
   delay (1000);
   //configure pin 2 as an input and enable the internal pull-up resistor
 
@@ -15,7 +15,8 @@ void setup() {
   pinMode(MOTOR_ENABLE_PIN, OUTPUT);
   
   Serial.println("Setup...");
-  delay (1000);
+  delay (1000);*/
+  pinMode(13, OUTPUT);
 
 }
 
@@ -49,8 +50,11 @@ void checkMotorEnable(){
 }
 
 void loop() {
-  delay(10);
-  checkMotorEnable();
+  //checkMotorEnable();
+  digitalWrite(13,HIGH);
+  delay(1000);
+  digitalWrite(13,LOW);
+  delay(1000);
 
   
 }
