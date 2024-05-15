@@ -110,12 +110,12 @@ class Clock{
 
         multiSteppers.addStepper(*stepper);
 
-        //stepper->setMaxSpeed(3900); // Set maximum speed value for the stepper
-        stepper->setMaxSpeed(3900); // Set maximum speed value for the stepper
+        //int spd = 3900;
+        int spd = 2000;
+        stepper->setMaxSpeed(spd); // Set maximum speed value for the stepper
         stepper->setAcceleration(10000); // Set acceleration value for the stepper
         stepper->setCurrentPosition(0); // Set the current position to 0 steps
-        //stepper->setSpeed(3900);
-        stepper->setSpeed(3900);
+        stepper->setSpeed(spd);
 
       }
 
@@ -142,6 +142,7 @@ class Clock{
       }
       multiSteppers.moveTo(degs);
       while(multiSteppers.run()){
+        delayMicroseconds(25);
       }
     }
 
@@ -201,6 +202,28 @@ class ClockOperator{
       clock.rotate(positions);
     }
 
+    /*void rotate2(String command){
+      int i=0;
+      int[] pins = new int[4];
+      while(comand.indexOf(command.substring(1,3),i) != -1){
+        pins[i] = i;
+        i++;
+      }
+      //for(int i =0; i<4;i++){
+      //  Serial.println(pins[i]);
+      //}
+      int target = current_pins_states[0];
+      for(int i =1; i<4;i++){
+        if(pins[i]!=NULL && pins[i] == target){
+
+        }
+      }
+
+      int positions[4];
+
+
+    }*/
+
     void setPins(String command){
       current_pins_states[0] = command[1]-'0';
       current_pins_states[1] = command[2]-'0';
@@ -247,8 +270,8 @@ class ClockOperator{
 
       if(command[0] == 'r' && command[2] != '0'){
         rotate(command);
-        //delay(50);
-        delay(150);
+        delay(50);
+        //delay(150);
       }
       if(command[0] == 'p'){
         setPins(command);
@@ -391,7 +414,7 @@ void setup() {
   commands = "p0111   r-21000 r-20111 p0011   r-31100 r-30011 p0001   r+40001 r-31110 p0101   r+10101 r+61010 p0100   r-50100 r-41011 p1100   r-51100 r+10011 p1101   r-21101 r+10010\n";
     
   clockOperator.reset();  //needed only after optimizing pin settings
-  delay(5000);
+  delay(3000);
   
 }
 
@@ -430,7 +453,7 @@ void loop2(){
   clockOperator.runCommand("r-61001");
   delay(100);
   clockOperator.checkPins();
-  delay(1000000);
+  delay(1000000);*/
   clockOperator.runCommand("p1000  ");
   clockOperator.clock.rotate(new int[4]{12,0,0,0});
   clockOperator.clock.rotate(new int[4]{21,0,0,0});
@@ -444,7 +467,7 @@ void loop2(){
   clockOperator.clock.rotate(new int[4]{41,0,0,0});
   clockOperator.clock.rotate(new int[4]{60,0,0,0});
   clockOperator.clock.rotate(new int[4]{1,0,0,0});
-  clockOperator.clock.rotate(new int[4]{42,0,0,0});*/
+  clockOperator.clock.rotate(new int[4]{42,0,0,0});/**/
   //clockOperator.checkPins();
   
   delay(1000000);

@@ -140,8 +140,8 @@ class Clock:
 
     def set_clock(self, clock):
         #set the clock to a specific configuration(if the state is valid)
-        for i in [0,2,6,8]:
-            if clock[i] != (12-clock[i+9])%12:
+        for i in [(0,11),(2,9),(6,17),(8,15)]:
+            if clock[i[0]] != (12-clock[i[1]])%12:
                 raise Exception("Invalid clock configuration, clock corners in both sides must be the same")
             else:
                 self.clock = clock
@@ -482,8 +482,8 @@ class Clock:
             else:
                 final_command+="0"
         else:
-            #!final_command = command+"00"
-            final_command = command+"  "
+            final_command = command+"00"
+            #final_command = command+"  "
         return final_command
     
     def prepare_commands(self,commands):
@@ -498,28 +498,27 @@ class Clock:
     
     def optimize_commnds_7_simul(self,commands):
 
-        #!this code works just if the commands are already prepared and if the solution was generated with the solve_clock_7_simul method
-        #TODO: finish the code
+        #!this code works just if the commands are already prepared and only if the solution was generated with the solve_clock_7_simul method
         
-        optimized_commands = commands.split(" ")
-        new_commands = []
-        new_commands_str = ""
-        for i in range(len(optimized_commands)-1):
-            if optimized_commands[i][0] == optimized_commands[i+1][0]:
-                if optimized_commands[i][3] =="1":
-                    new_commands.append(optimized_commands[i][0]+optimized_commands[i][1:3]+optimized_commands[i+1][1:3]+"1111")
-                else:
-                    new_commands.append(optimized_commands[i][0]+optimized_commands[i+1][1:3]+optimized_commands[i][1:3]+"1111")
-                
-            else:
-                if optimized_commands[i][0] == "p":
-                    new_commands.append(optimized_commands[i]+"00") #the 00 is because I want all of the commands to have the same length
 
-        for i in new_commands:
-            new_commands_str+=i+" "
+        optimized_commands = []
+        sliced_commands = []
+        splited_commands = commands.split(" ")
+        for i in range(0, len(splited_commands), 3):
+            sublist = splited_commands[i:i+3]  # Get the next 3 elements
+            sliced_commands.append(sublist)
+        
+        for chank in sliced_commands:
+            optimized_commands.append(chank[0])
+            rotate = "r"+ ''.join(chank[1][1:3] if wheel == "1" else "_" for wheel in chank[1][3:])
+
+            rotate = rotate.replace("_",chank[2][1:3])
             
-        return[new_commands_str[:-1]]
-                
+            optimized_commands.append(rotate)
+        
+        return " ".join(optimized_commands)
+
+
 
 def main():
     clock = Clock()
@@ -535,19 +534,19 @@ def main():
     #clock.scramble(scramble)
     clock.set_clock([
                     #front
-                    1,1,1,
-                    1,1,1,
-                    0,0,0,
+                    2,3,2,
+                    3,4,3,
+                    2,3,2,
                     #back
-                    11,0,11,
+                    10,0,10,
                     0,0,0,
-                    0,0,0])
+                    10,0,10])
     commands = clock.solve_clock_7_simul()
     clock.print_clock()
     new_commands = clock.prepare_commands(commands)
+    #new_commands = "p011100 r-21000 r-20111 p001100 r-31100 r-30011 p000100 r+40001 r-31110 p010100 r+10101 r+61010 p010000 r-50100 r-41011 p110000 r-51100 r+10011 p110100 r-21101 r+10010"
     print(new_commands)
-
+    print(clock.optimize_commnds_7_simul(new_commands))
     
-
 if __name__ == "__main__":
     main()

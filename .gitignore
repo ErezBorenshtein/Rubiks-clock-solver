@@ -1,1 +1,2 @@
-~*.sldpart
+# ignore all of the temporary solidworks files
+~*.SLDPART
