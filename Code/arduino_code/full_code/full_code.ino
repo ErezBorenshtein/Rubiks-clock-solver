@@ -173,7 +173,7 @@ class ClockOperator{
       //Serial.println(hours_deg);
 
       for(int i=3 ; i<7 ; i++){
-        if(command[i] == '0'){
+        if(command[i] == '0'){ //because the hours_deg calculated once for all wheels
           positions_degs[i-3] = wheels_states_degs[i-3];
           //Serial.println("wheel "+String(i-3)+": "+String(positions_degs[i-3]));
         }

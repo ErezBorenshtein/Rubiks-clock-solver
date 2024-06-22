@@ -482,8 +482,8 @@ class Clock:
             else:
                 final_command+="0"
         else:
-            #final_command = command+"00"
-            final_command = command+"  "
+            final_command = command+"00"
+            #final_command = command+"  "
         return final_command
     
     def prepare_commands(self,commands):
@@ -508,7 +508,7 @@ class Clock:
             sliced_commands.append(sublist)
         
         for chank in sliced_commands:
-            optimized_commands.append(chank[0])
+            optimized_commands.append(chank[0]+"00")
             rotate = "r"+ ''.join(chank[1][1:3] if wheel == "1" else "_" for wheel in chank[1][3:])
 
             rotate = rotate.replace("_",chank[2][1:3])
@@ -543,15 +543,17 @@ def main():
     #commands = clock.solve_clock_7_simul()
     #clock.print_clock()
     #scramble = "UR1+ DR4- DL2- UL2- U3- R1+ D1- L3+ ALL5- y2 U2- R2+ D1+ L5- ALL0+"
-    #clock.scramble(scramble)
-    #clock.print_clock()
-    #print("--------------------------------------")
-    #commands = clock.solve_clock_7_simul()
-    #print(commands)
-    #new_commands = clock.prepare_commands(commands)
-    #print(new_commands)
-    new_commands = "p011100 r-21000 r-20111 p001100 r-31100 r-30011 p000100 r+40001 r-31110 p010100 r+10101 r+61010 p010000 r-50100 r-41011 p110000 r-51100 r+10011 p110100 r-21101 r+10010"
+    #scramble = "UR1- DR5- DL5- UL3- U3+ R3- D1- L6+ ALL2- y2 U1- R2+ D3+ L0+ ALL2+"
+    scramble = "UR1- DR0+ DL4+ UL2+ U0+ R0+ D2+ L4+ ALL6+ y2 U5- R1- D1+ L2+ ALL3+"
+    clock.scramble(scramble)
+    clock.print_clock()
+    print("--------------------------------------")
+    commands = clock.solve_clock_7_simul()
+    print(commands)
+    new_commands = clock.prepare_commands(commands)
     print(new_commands)
+    #new_commands = "p011100 r-21000 r-20111 p001100 r-31100 r-30011 p000100 r+40001 r-31110 p010100 r+10101 r+61010 p010000 r-50100 r-41011 p110000 r-51100 r+10011 p110100 r-21101 r+10010"
+    #print(new_commands)
     print(clock.optimize_commnds_7_simul(new_commands))
     
 if __name__ == "__main__":
