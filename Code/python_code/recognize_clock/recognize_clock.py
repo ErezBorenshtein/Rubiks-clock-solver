@@ -1,312 +1,323 @@
 import cv2
 import numpy as np
 
-font = cv2.FONT_HERSHEY_SIMPLEX
+from clock_buffer import BufferManager
 
-def get_angle(hand,centre):
-    angle=0
-    #x_h=hand[0][0]
-    #y_h=hand[0][1]
-    x_h=hand[0]
-    y_h=hand[1]
-    x_c=centre[0]
-    y_c=centre[1]
+buffer = BufferManager(10,9)
+centers_buffer = BufferManager(15,9)
 
-    x_diff=x_h-x_c
-    y_diff=y_h-y_c
-    x_diff=float(x_diff)
-    y_diff=float(y_diff)
+def rad_to_deg(radians):
+    return radians * (180 / np.pi)
 
-    if(x_diff*y_diff>0):
-        if(x_diff>=0 and y_diff>0):
-            angle=np.pi-np.arctan(x_diff/y_diff)
-        elif(x_diff<=0 and y_diff<0):
-            angle=2*np.pi-np.arctan(x_diff/y_diff)
-    elif(x_diff*y_diff<0):
-        if(y_diff>=0 and x_diff<0):
-            angle=(3*np.pi)/4+np.arctan(x_diff/y_diff)
-        elif(y_diff<=0 and x_diff>0):
-            angle=-np.arctan(x_diff/y_diff)
+def angle_to_hour(angle_deg):  
+    num_of_hours = round(angle_deg / 30)
+    hour = 3- num_of_hours
+    if hour < 0:
+        hour = 12+ hour
+    return hour
 
+def get_angle(hand, centre):
+    x_h, y_h = hand
+    x_c, y_c = centre
+
+    x_diff = x_h - x_c
+    y_diff = -(y_h - y_c)
+
+    # Calculate angle using arctan2 to handle all quadrants
+    angle = np.arctan2(y_diff, x_diff)
+    
+    # Convert angle to the range [0, 2π)
+    if angle < 0:
+        angle += 2 * np.pi
+    deg = rad_to_deg (angle)
     return angle
 
-def get_hour(hourangle):
-
-    fullhour=hourangle//30
-    remainder=hourangle%30
-    if(remainder>15):
-        fullhour+=1
-    return int(fullhour)
-
-    """hour=hourangle//30
-    if(hour==0):
-        return 12
-    else:
-        return int(hour)
-"""
-def get_minsec(angle):
-    minsec=angle/(np.rad2deg(2*np.pi))*60
-    return int(minsec)
-
-def get_farthest_point(contour, reference_point):
-    # Initialize variables
-    max_distance = -1
-    farthest_point = None
-
-    # Iterate through each contour
-    for point in contour:
-        # Calculate distance between reference point and current point
-        distance = np.linalg.norm(point[0] - reference_point)
+def filter_contours_by_y_threshold (contours,y_threshold):
+    filtered_contours = []
+    for contour in contours:
+        # Get the bounding rectangle of the contour
+        x, y, w, h = cv2.boundingRect(contour)
         
-        # Update farthest point if current distance is greater
-        if distance > max_distance:
-            max_distance = distance
-            farthest_point = tuple(point[0])
-            
-    return farthest_point
+        # Check if the contour is below the y_threshold
+        if y_threshold == 0:
+            filtered_contours.append(contour)
+        if y_threshold > 0 and y > y_threshold:
+            filtered_contours.append(contour)
+        if y_threshold < 0 and y < -y_threshold:
+            filtered_contours.append(contour)
+    return filtered_contours
 
-
-"""img = cv2.imread('E:\\erez\\arduino\\Clock solver\\Code\\python_code\\Clock-photo5.jpg')
-#img=cv2.resize(img,None,fx=2, fy=2, interpolation = cv2.INTER_CUBIC)
-img_grayscale=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-img_inverse=cv2.bitwise_not(img_grayscale)
-
-#thresholding part
-ret,thresh = cv2.threshold(img,127,255,cv2.THRESH_BINARY)
-kernel = np.ones((5,5),np.uint8)
-#thresh=cv2.erode(thresh,kernel,iterations=1)
-thresh=cv2.dilate(thresh,kernel,iterations=1)
-edges=cv2.Canny(thresh,100,200)
-cv2.imshow('EDGES',edges)
-cv2.imshow('THRESHOLDED IMAGE',thresh)
-
-gray_img = cv2.cvtColor(img,	cv2.COLOR_BGR2GRAY)
-img	= cv2.medianBlur(gray_img,	5)
-"""
-#Circle Detection Part
-#circles	= cv2.HoughCircles(img,cv2.HOUGH_GRADIENT,1,35,param1=300,param2=20,minRadius=10,maxRadius=30)
-"""circles	= cv2.HoughCircles(img,cv2.HOUGH_GRADIENT,1,35,param1=300,param2=20,minRadius=10,maxRadius=600)
-circles	= np.uint16(np.around(circles))
-maxrad=0
-centre=()
-circle_num=1"""
-#def d
-"""for i in circles[0,:]:
-    if i[2]>maxrad:
-        maxrad=i[2]
-        centre=(i[0],i[1])"""
-"""maxrad = circles[0,:][circle_num][2]
-centre=circles[0,:][circle_num][0],circles[0,:][circle_num][1]"""
-
-#Displaying Circle Around Clock
-"""cv2.circle(img,centre,maxrad,(0,255,0),2)
-cv2.circle(img,centre,2,(0,0,255),3)"""
-
-#Getting and Displaying Contours
-"""contours,hierarchy=cv2.findContours(edges.copy(),cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
-cv2.drawContours(img,contours, -1, (0, 255, 0), 1)"""
-
-
-#Getting Contours which contain centre point within it
-def find_contours(contours_in_func,centre_in_func,img):
-    shortlist=[]
-    for i in contours_in_func:
-        x, y, w, h = cv2.boundingRect(i)
-        if (centre_in_func[0]<(x+w) and centre_in_func[0]>x) and (centre_in_func[1]>y and centre_in_func[1]<y+h):
-            shortlist.append(i)
-    cv2.drawContours(img,shortlist,-1,(255,0,0),2)
-    return shortlist
-
-"""shortlist=[]
-for i in contours:
-    x, y, w, h = cv2.boundingRect(i)
-    if (centre[0]<(x+w) and centre[0]>x) and (centre[1]>y and centre[1]<y+h):
-        shortlist.append(i)
-cv2.drawContours(img,shortlist,-1,(255,0,0),2)"""
-
-
-
-#Getting Contour of Hands
-"""minarea=0
-hand_contour=[]
-for i in shortlist:
-    x, y, w, h = cv2.boundingRect(i)
-    cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
-    if minarea==0:
-        minarea=cv2.contourArea(i)
-        hand_contour=i
-        continue
-    if minarea>cv2.contourArea(i):
-        minarea=cv2.contourArea(i)
-        hand_contour=i
-"""
-
-
-"""minarea=0
-hand_contour=[]
-all_contours=[]
-for i in shortlist:
-    x, y, w, h = cv2.boundingRect(i)
-    all_contours.append((i,w*h,x,y,w,h))
-all_contours=sorted(all_contours,key=lambda x:x[1])
-hand_contour=all_contours[-2][0]
-cv2.rectangle(img, (all_contours[-2][2], all_contours[-2][3]), (all_contours[-2][2] +  all_contours[-2][4], all_contours[-2][3] +  all_contours[-2][5]), (0, 255, 0), 2)    
-"""
-
-
-def get_hands(shortlist,img):
-    minarea=0
-    hand_contour=[]
-    all_contours=[]
-    for i in shortlist:
-        x, y, w, h = cv2.boundingRect(i)
-        all_contours.append((i,w*h,x,y,w,h))
-    all_contours=sorted(all_contours,key=lambda x:x[1])
-    hand_contour=all_contours[-2][0]
-    cv2.rectangle(img, (all_contours[-2][2], all_contours[-2][3]), (all_contours[-2][2] +  all_contours[-2][4], all_contours[-2][3] +  all_contours[-2][5]), (0, 255, 0), 2)    
-    return hand_contour
-
-
-#cv2.drawContours(img,[hand_contour],-1,(255,0,0),2)
-
-#Getting and Clustering Hull Points
-def get_and_Cluster_Hull_Points(hand_contour):
-    hull = cv2.convexHull(hand_contour)
-    hull=sorted(hull, key=lambda x: x[0][0])
-
-    groups = [[hull[0][0]]]
-    for i in hull[1:]:
-        if (abs(i[0][0]-groups[-1][-1][0])<=20) and (abs(i[0][1]-groups[-1][-1][1])<=20):
-            groups[-1].append(i[0])
-        else:
-            groups.append([i[0]])
-
-    hull_points_clustered=[]
-
-    for i in groups:
-        x_sum=0
-        y_sum=0
-        l=len(i)
-        for j in range(l):
-            x_sum+=i[j][0]
-            y_sum+=i[j][1]
-        x_ave=x_sum//l
-        y_ave=y_sum//l
-        hull_points_clustered.append([x_ave,y_ave])
-    return hull_points_clustered
-
-#Getting Points of Hands
-def get_points_of_hand(hull_points_clustered,centre,maxrad,img):
-    hand_points=[]
-    for i in hull_points_clustered:
-        x=i[0]
-        y=i[1]
-        cv2.circle(img,(x,y), 2, (0, 0, 255), 3)
-        #if (x-centre[0])**2+(y-centre[1])**2 >= (maxrad/2)**2: 
-        if (x-centre[0])**2+(y-centre[1])**2 <= (maxrad/2)**2: #!my change
-            hand_point_dist=((x-centre[0])**2+(y-centre[1])**2)
-            hand_points.append([[x,y],int(hand_point_dist)])
-    return hand_points
-
-
-#Assigning Length of each hand to the hands
-def get_length_of_hand(hand_points,img):
-    for i in hand_points:
-        x=i[0][0]
-        y=i[0][1]
-        cv2.circle(img,(x,y), 2, (255, 0, 255), 3)
-        length_of_hand=str(i[1])
-    return length_of_hand
-        #cv2.putText(img,length_of_hand, (x,y), font, 1, (0, 255, 255), 2, cv2.LINE_AA)
-
-#hand_points=sorted(hand_points, key=lambda x:x[1])
-#cv2.circle(img,(hand_points[0][0][0],hand_points[0][0][1]), 50, (0,0,255), -1)
-#Getting Time
-def main():
-
-    img = cv2.imread('E:\\erez\\arduino\\Clock solver\\Code\\python_code\\Clock-photo5.jpg')
-    #img=cv2.resize(img,None,fx=2, fy=2, interpolation = cv2.INTER_CUBIC)
-    img_grayscale=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-    img_inverse=cv2.bitwise_not(img_grayscale)
-
-    #thresholding part
-    ret,thresh = cv2.threshold(img,127,255,cv2.THRESH_BINARY)
-    kernel = np.ones((5,5),np.uint8)
-    #thresh=cv2.erode(thresh,kernel,iterations=1)
-    thresh=cv2.dilate(thresh,kernel,iterations=1)
-    edges=cv2.Canny(thresh,100,200)
-    cv2.imshow('EDGES',edges)
-    cv2.imshow('THRESHOLDED IMAGE',thresh)
-
-    gray_img = cv2.cvtColor(img,	cv2.COLOR_BGR2GRAY)
-    img	= cv2.medianBlur(gray_img,	5)
-
-    #Circle Detection Part
-    #circles	= cv2.HoughCircles(img,cv2.HOUGH_GRADIENT,1,35,param1=300,param2=20,minRadius=10,maxRadius=30)
-    circles	= cv2.HoughCircles(img,cv2.HOUGH_GRADIENT,1,35,param1=300,param2=20,minRadius=100,maxRadius=300)
-    circles	= np.uint16(np.around(circles))
-    maxrad=0
-    centre=()
-    circle_num=1
-    #def d
-    """for i in circles[0,:]:
-        if i[2]>maxrad:
-            maxrad=i[2]
-            centre=(i[0],i[1])"""
+def get_circles_indices(circles):
+    """
+    Sorts the circles in an approximate 3x3 grid where coordinates vary.
     
-    for i in circles[0,:]:
-        pass
+    Parameters:
+    circles (list of tuples): A list of circles, where each circle is represented by a tuple (x, y, radius).
+    
+    Returns:
+    list of int: A list of indices sorted by the grid order.
+    """
+    # Convert the circles to a numpy array for easier manipulation
+    circles = np.array(circles)
+    
+    # Sort circles by their y-coordinates
+    sorted_by_y = circles[np.argsort(circles[:, 1])]
+    
+    # Create lists to store each row
+    rows = [[], [], []]
+    
+    # Approximate a threshold to distinguish rows based on y-coordinates
+    y_threshold = (sorted_by_y[-1, 1] - sorted_by_y[0, 1]) / 3
+    
+    # Assign circles to rows
+    current_row = 0
+    current_y = sorted_by_y[0, 1]
+    for circle in sorted_by_y:
+        if circle[1] > current_y + y_threshold:
+            current_row += 1
+            current_y = circle[1]
+        rows[current_row].append(circle)
+    
+    # Sort each row by x-coordinates
+    for i in range(3):
+        rows[i] = sorted(rows[i], key=lambda c: c[0])
+    
+    # Flatten the rows and extract indices
+    sorted_circles = [circle for row in rows for circle in row]
+    sorted_indices = [np.where((circles == circle).all(axis=1))[0][0] for circle in sorted_circles]
+    
+    return sorted_indices
 
-    maxrad = circles[0,:][circle_num][2]
-    centre=circles[0,:][circle_num][0],circles[0,:][circle_num][1]
+def furthest_point_within_circle(circles, sorted_indices,contours,offset):
+    """
+    Finds the furthest contour point within each circle.
+    
+    Parameters:
+    circles (list of tuples): A list of circles, where each circle is represented by a tuple (x, y, radius).
+    contours (list of numpy arrays): A list of contours from CV2.findContours.
+    
+    Returns:
+    list of tuples: A list of points (x, y), one per circle, which are the furthest from the circle center.
+    """
+    furthest_points = []
 
-    #Displaying Circle Around Clock
-    cv2.circle(img,centre,maxrad,(0,255,0),2)
-    cv2.circle(img,centre,2,(0,0,255),3)
+    denoised_centers = centers_buffer.average_positions()
 
-    #Getting and Displaying Contours
-    contours,hierarchy=cv2.findContours(edges.copy(),cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
-    cv2.drawContours(img,contours, -1, (0, 255, 0), 1)
+    for i in range(9):
+        
+        #cx, cy, radius = circle
+        cx, cy, radius = denoised_centers[i][0],denoised_centers[i][1],circles[sorted_indices[i]][2],
+        max_distance = -1
+        furthest_point = None
 
-    shortlist = find_contours(contours,centre,img)
-    if len(shortlist)>0:
-        hand_contour = get_hands(shortlist,img)
+        num_contours = 0
+        for contour in contours:
+            #if num_contours == 48:
+            num_points = 0
+            for point in contour:
+                px, py = point[0]
+                
+                # Check if the point is within the circle
+                if (px - cx) ** 2 + (py - cy) ** 2 <= (radius-offset) ** 2:
+                    num_points +=1
+                    distance = np.sqrt((px - cx) ** 2 + (py - cy) ** 2)
+                    # Update the furthest point if this point is further
+                    if distance > max_distance:
+                        max_distance = distance
+                        furthest_point = (px, py)
+            num_contours +=1
+        furthest_points.append(furthest_point)
 
-        hull_points_clustered =get_and_Cluster_Hull_Points(hand_contour)
+    return furthest_points
 
-        hand_points=get_points_of_hand(hull_points_clustered,centre,maxrad,img)
+def extract_image(img_grayscale, min_thresh, max_thresh, kernel_rate):
+    _, thresh = cv2.threshold(img_grayscale, min_thresh, max_thresh, cv2.THRESH_BINARY)
+    kernel = np.ones((kernel_rate, kernel_rate), np.uint8)
+    thresh = cv2.dilate(thresh, kernel, iterations=1)
+    edges = cv2.Canny(thresh, 100, 200)
+    return thresh,edges
 
-        #langth_of_hand=get_length_of_hand(hand_points,img)
+def contains_none(arrays):
+    return any(any(cell is None for cell in row) for row in arrays)
 
-        if len(hand_points)==0:
-            print("No Hands Detected")
+def read_clock(camera):
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    img2 = 0
+
+    circle_min_thresh = 64 
+    max_thresh = 255
+    
+    top_min_threshold = 32
+    bottom_min_threshold = 129
+
+    kernel_rate = 1
+
+    circle_param1 = 300
+    circle_param2 = 20
+    show_contour_num = 0
+
+    while True:
+
+        if camera is not None:
+            _, img2 = camera.read()
         else:
-            #hour_hand=hand_points[0]
-            hour_hand=get_farthest_point(hand_contour,centre)
-            cv2.circle(img,(hour_hand[0],hour_hand[1]), 10, (0,0,255), -1)
-            cv2.circle(img,(centre[0],centre[1]), 10, (0,0,255), -1)
+            img2 = cv2.imread("images\\captured_image_0.jpg")
+        
+        if img2 is None:
+            print("Error: Image not found.")
+            return
+
+        img_grayscale = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+    
+        img= img2.copy()
+        # Thresholding part
+        circle_thresh, circle_edges =   extract_image(img_grayscale, circle_min_thresh,     max_thresh, kernel_rate)
+        top_thresh, top_edges =         extract_image(img_grayscale, top_min_threshold,     max_thresh, kernel_rate)
+        bottom_thresh, bottom_edges =   extract_image(img_grayscale, bottom_min_threshold,  max_thresh, kernel_rate)
+
+        top_contours, hierarchy = cv2.findContours(top_edges.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+        bottom_contours, hierarchy = cv2.findContours(bottom_edges.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+
+        cv2.imshow('CIRCLE EDGES', circle_edges)
+        cv2.imshow('CIRCLE THRESHOLDED IMAGE', circle_thresh)
+        cv2.imshow('TOP THRESHOLDED IMAGE', top_thresh)
+        cv2.imshow('BOTTOM THRESHOLDED IMAGE', bottom_thresh)
+
+
+        
+        # Circle Detection Part
+        circles = cv2.HoughCircles(circle_edges, cv2.HOUGH_GRADIENT, 1, 35, param1=circle_param1, param2=circle_param2, minRadius=40, maxRadius=63)
+        if (circles is None or len(circles.shape) == 1):
+            continue
+        circles = np.uint16(np.around(circles))
+        circles = np.squeeze(circles)
+        
+        if (circles is None or len(circles.shape) == 1):
+            continue
+        if len(circles) != 9:
+            for circle_num in range(len(circles)):
             
-            #minute_hand=hand_points[1]
-            #second_hand=hand_points[2]
+                maxrad = circles[circle_num][2]
+                centre = (circles[circle_num, 0], circles[circle_num, 1])
+                
+                # Displaying Circle Around Clock
+                cv2.circle(img, centre, maxrad, (20, 90, 230), 2)
+                cv2.circle(img, centre, 2, (0, 0, 255), 3)
+            cv2.imshow('Final', img)
+            cv2.waitKey(1)
 
-            hour_angle=np.rad2deg(get_angle(hour_hand,centre))
-            #minute_angle=np.rad2deg(get_angle(minute_hand,centre))
-            #second_angle=np.rad2deg(get_angle(second_hand,centre))
+        if (len(circles) != 9):
+            continue
+        
+        sorted_indices = get_circles_indices(circles)
 
-            hour=get_hour(hour_angle)
-            #minute=get_minsec(minute_angle)
-            #second=get_minsec(second_angle)
+        circles[sorted_indices[0], 2] =circles[sorted_indices[1], 2] =circles[sorted_indices[2], 2] = 43
+        circles[sorted_indices[3], 2] =circles[sorted_indices[4], 2] =circles[sorted_indices[5], 2] = 40
+        circles[sorted_indices[6], 2] =circles[sorted_indices[7], 2] =37
+        circles[sorted_indices[8], 2] = 36
 
-            #Displaying Time
-            #time_display="The time is: "+str(hour)+":"+str(minute)+":"+str(second)
-            time_display="The time is: "+str(hour)
+        centers_buffer.add_to_buffer([[circles[sorted_indices[0]][0],circles[sorted_indices[0]][1]],
+                                      [circles[sorted_indices[1]][0],circles[sorted_indices[1]][1]],
+                                      [circles[sorted_indices[2]][0],circles[sorted_indices[2]][1]],
+                                      [circles[sorted_indices[3]][0],circles[sorted_indices[3]][1]],
+                                      [circles[sorted_indices[4]][0],circles[sorted_indices[4]][1]],
+                                      [circles[sorted_indices[5]][0],circles[sorted_indices[5]][1]],
+                                      [circles[sorted_indices[6]][0],circles[sorted_indices[6]][1]],
+                                      [circles[sorted_indices[7]][0],circles[sorted_indices[7]][1]],
+                                      [circles[sorted_indices[8]][0],circles[sorted_indices[8]][1]]])
 
-            cv2.putText(img,time_display, (centre[0]-150,centre[1]+50), font, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        #boundary between top and bottom circles
+        y_threshold = (circles[sorted_indices[3], 1] + circles[sorted_indices[6], 1])/2
+
+
+        # Getting and Displaying Contours
+        top_contours, hierarchy = cv2.findContours(top_edges.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+        top_contours = filter_contours_by_y_threshold(top_contours,-y_threshold)
+        bottom_contours, hierarchy = cv2.findContours(bottom_edges.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+        bottom_contours = filter_contours_by_y_threshold(bottom_contours,y_threshold)
+        
+        contours = top_contours + bottom_contours
+        cv2.drawContours(img, contours, -1, (231, 48, 255), 1)
+        furthest_points = furthest_point_within_circle(circles,sorted_indices,contours,0)
+        
+
+        #x, y, w, h = cv2.boundingRect(contours[show_contour_num])
+        #cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+        hours = []
+        centers = []
+        denoised_centers = centers_buffer.average_positions()
+        for idx in range(len(furthest_points)):
+            point = furthest_points[idx]
+            if point is not None:
+                circle = circles[sorted_indices[idx]]
+                circle2 = denoised_centers[idx]
+                cv2.circle(img, point, 5, (0, 255, 0), -1)  # Green dot
+                angle_in_rad= get_angle(point, (circle2[0],circle2[1]))
+                hour_angle = np.rad2deg(angle_in_rad)
+                hour = angle_to_hour(hour_angle)
+                hours.append(hour)
+                cv2.putText(img,str(hour),point,font,1, (255, 255, 255), 2, cv2.LINE_AA)
+        
+        if hours != [] and len(hours) == 9:
+            buffer.add_to_buffer(hours)
+
+
+        cv2.putText(img,str(buffer.get_most_popular_numbers()),(0,20),font,1, (255, 255, 255), 2, cv2.LINE_AA)
+
+        #for circle_num in range(len(sorted_indices)):
+        for i in range(9):
+            maxrad = circles[sorted_indices[i], 2]
+            centre = (circles[i, 0], circles[i, 1])
+            
+            # Displaying Circle Around Clock
+            cv2.circle(img, centre, maxrad, (20, 90, 230), 2)
+            cv2.circle(img, centre, 2, (0, 0, 255), 3)
+        
+
+        cv2.imshow('Final', img)
+        key = cv2.waitKey(1) & 0xFF
+
+        if key == 27:  # ESC key to exit
+            break
+        elif key == ord('1'):
+            circle_param1 = max(0, circle_param1 - 1)
+        elif key == ord('2'):
+            circle_param1 = min(500, circle_param1 + 1)
+        elif key == ord('3'):
+            bottom_min_threshold = max(0, bottom_min_threshold - 1)
+        elif key == ord('4'):
+            bottom_min_threshold = min(500, bottom_min_threshold + 1)
+        elif key == ord('5'):
+            circle_param2 -=1
+        elif key == ord('6'):
+            circle_param2 +=1
+        elif key == ord('7'):
+            show_contour_num -=1
+        elif key == ord('8'):
+            show_contour_num +=1
+        elif key == ord('a'):
+            return hours
+        
+    cv2.destroyAllWindows()
+
+def find_available_cameras(max_index=10):
+    available_cameras = []
+    for index in range(max_index):
+        cap = cv2.VideoCapture(index)
+        if cap.isOpened():
+            available_cameras.append(index)
+            cap.release()
+    return available_cameras
+
+
+def main():
+    centers_buffer.prepare_positions(20,9)
+    camera = cv2.VideoCapture(1)
+    hour1 = read_clock(camera)
+    hour2 = read_clock(camera)
 
 
 
-
-    cv2.imshow('Final',img)
-
-    cv2.waitKey(0)
-main()
+if __name__ == "__main__":
+    main()

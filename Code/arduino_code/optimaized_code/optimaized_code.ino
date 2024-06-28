@@ -10,8 +10,9 @@
 
 //with TB6600 drivers
 //#define ROTATION_SPEED 13000 //max possible speed
-#define ROTATION_SPEED 3000
+#define ROTATION_SPEED 4000
 #define ROTATION_DELAY 0
+#define MIN_PULSE_WIDTH 3
 
 class Solenoids{
   public:
@@ -79,8 +80,9 @@ class Solenoids{
 class Clock{
   public:
     //const int stepsPerRotation = (400*(3.0/4))*2; // 400 is the number of steps per rotation, 3/4 is the gear ratio, 8 is the microstepping
-    const int stepsPerRotation = (400*(12.0/22))*2; // 400 is the number of steps per rotation, 3/4 is the gear ratio, 8 is the microstepping
-    int offset[4] = {0,1,0,0}; //gear ratio offset for each wheel
+    const int stepsPerRotation = (400*(12.0/22.0))*2; // 400 is the number of steps per rotation, 3/4 is the gear ratio, 8 is the microstepping
+    //const int stepsPerRotation = (400*(9.9/18.15))*2; // 400 is the number of steps per rotation, 12/22 is the gear ratio, 8 is the microstepping
+    int offset[4] = {0,0,0,0}; //gear ratio offset for each wheel
     
 
     AccelStepper* stepperUR;
@@ -122,8 +124,8 @@ class Clock{
         stepper->setMaxSpeed(spd); // Set maximum speed value for the stepper
         stepper->setAcceleration(100000); // Set acceleration value for the stepper
         stepper->setCurrentPosition(0); // Set the current position to 0 steps
-        stepper->setSpeed(spd);
-
+        stepper->setMinPulseWidth(MIN_PULSE_WIDTH);
+        //stepper->setSpeed(spd);
       }
 
     }
@@ -132,22 +134,53 @@ class Clock{
       solenoids.set(stateUR, stateDR, stateDL, stateUL);
       //Serial.println("setting pins: "+String(stateUR)+String(stateDR)+String(stateDL)+String(stateUL));
     }
-  
+
+    void moveSteppers(long positions[]) {
+
+      // Move each stepper to the target position
+      for(int i =0; i<4;i++){
+        steppers[i]->moveTo(positions[i]);
+      }
+
+      while (steppers[0]->distanceToGo() != 0|| steppers[1]->distanceToGo() != 0 || steppers[2]->distanceToGo() != 0 || steppers[3]->distanceToGo() != 0) {
+        for(int i =0; i<4;i++){
+          steppers[i]->run();
+        }
+    }
+}
+
     void rotate(float positions_degs[4]){
       long steps[4];
       for(int i=0; i<4; i++){
-        steps[i] = positions_degs[i]*(stepsPerRotation+offset[i])/360.0;
-        //Serial.println("steps "+String(i)+": "+String(steps[i]));
+        steps[i] = (positions_degs[i]*(stepsPerRotation+offset[i])/360.0)+0.5;
+        //Serial.println("steps "+String(i)+": "+String(steps[i])+ "      degs: "+String(positions_degs[i]));
       }
-      multiSteppers.moveTo(steps);
+      /*multiSteppers.moveTo(steps);
       
       while(multiSteppers.run()){
         //delayMicroseconds(25);
-      }
+      }*/
+
+      moveSteppers(steps);
     }
 
     void reset(){
       solenoids.reset();
+    }
+
+    void test(){
+
+      long positions[] = {0,0,0,0};
+      multiSteppers.moveTo(positions);
+      while(multiSteppers.run());
+
+      delay(1000);
+
+      positions[0] = 109;
+      multiSteppers.moveTo(positions);
+      while(multiSteppers.run());
+
+    delay(1000);
     }
 };
 
@@ -185,7 +218,7 @@ class ClockOperator{
       for(int i=0 ; i<4 ; i++){   
           float hours_deg = (command[i*2+2]-'0')*360.0/12.0;
 
-          if(command[i*2+1] == '-'){
+          if(command[i*2+1] == '+'){
             hours_deg*=-1;
           }
 
@@ -253,7 +286,7 @@ class ClockOperator{
         setPins(command);
         //delay(60);
       }
-      delay(1000);
+      //delay(1000);
       
     }
 
@@ -365,7 +398,7 @@ void setup() {
   
 }
 
-void loop() {
+void loop2() {
 
   unsigned long start_time = millis();
   //clockOperator.runCommand("p100100");s
@@ -379,7 +412,7 @@ void loop() {
 
 }
 
-void loop2(){
+void loop(){
   /*clockOperator.runCommand("p00000000");
   clockOperator.runCommand("p00010000");
   clockOperator.runCommand("p00100000");
@@ -407,14 +440,13 @@ void loop2(){
   clockOperator.runCommand("r+60101");
   clockOperator.runCommand("r-20101");
   clockOperator.runCommand("r+40101");
-  
  clockOperator.runCommand("r+3+0+0+0");
- clockOperator.runCommand("r-6+0+0+0");
+ clockOperator.runCommand("r-2+0+0+0");
  clockOperator.runCommand("r+1+0+0+0");
- clockOperator.runCommand("r-6+0+0+0");
+ clockOperator.runCommand("r-5+0+0+0");
  clockOperator.runCommand("r+3+0+0+0");
  clockOperator.runCommand("r+6+0+0+0");
- clockOperator.runCommand("r+4+0+0+0")ֹ;*/ 
+ clockOperator.runCommand("r+4+0+0+0");*/ 
  //long x = millis();
  //clockOperator.runCommand("r+0+0+0+6");
  //Serial.println(millis()-x);
@@ -424,12 +456,44 @@ void loop2(){
   //clockOperator.runCommand("p01010000");
   //clockOperator.runCommand("p00000000");
   //long x = millis();
-  clockOperator.clock.rotate(new float[4]{0,0,0,360*6});
+  //clockOperator.runCommand("r+5+0+0+0");
+  //clockOperator.runCommand("r-2+0+0+0");
+  //clockOperator.runCommand("r+4+0+0+0");
+  //clockOperator.runCommand("r-5+0+0+0");
+  //clockOperator.runCommand("r+2+0+0+0");
+  //clockOperator.runCommand("r-3+0+0+0");
+  //clockOperator.runCommand("r+5+0+0+0");
+  //clockOperator.runCommand("r+3+0+0+0");
+  //clockOperator.runCommand("r-1+0+0+0");
+  //clockOperator.runCommand("r+4+0+0+0");
+  //clockOperator.runCommand("r-2+0+0+0");
+  //clockOperator.runCommand("r+1+0+0+0");
+  //clockOperator.runCommand("r+0+0+0+3");
+  //clockOperator.runCommand("r+0+0+0-3");
+  //clockOperator.runCommand("r+0+0+0+3");
+  //clockOperator.runCommand("r+0+0+0-3");
+  //clockOperator.runCommand("r+0+0+0+3");
+  //clockOperator.runCommand("r+0+0+0-3");
+  //clockOperator.runCommand("r+0+0+0+3");
+  //clockOperator.runCommand("r+0+0+0+3");
+  //clockOperator.runCommand("r+0+0+0-3");
+  //clockOperator.runCommand("r+0+0+0+3");
+  //clockOperator.runCommand("r+0+0+0-3");
+  //clockOperator.runCommand("r+0+0+0+3");
+  unsigned long x = millis();
+  clockOperator.clock.rotate(new float[4]{0,0,0,108});
+  //delay(1000);
+  clockOperator.clock.rotate(new float[4]{0,0,0,0});
+  Serial.println(millis()-x);
+  
+
   //Serial.println(millis()-x);
   //clockOperator.runCommand("p11000000");
   //clockOperator.runCommand("r+0+0+6+0");
   //Serial.println(millis()-x);
   //Serial.println(millis()-x);
 
-  delay(5000);
+  //clockOperator.clock.test();
+
+  delay(1000);
 }  
