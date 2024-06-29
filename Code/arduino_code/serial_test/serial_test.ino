@@ -86,57 +86,100 @@ void setup() {
 }*/
 
 const long turn_steps = 400 * 2;
-const int step_dir[4] = {43, 14, 11, 7};
-const int step_pul[4] = {42, 15, 12, 8};
+const int step_dir[4] = {43, 49, 11, 7};
+const int step_pul[4] = {42, 48, 12, 8};
 //const int step_dir[4] = {11, 9, 14, 7};
 //const int step_pul[4] = {12, 10, 15, 8};
 
-void move_motor(long spd, long deg1, long deg2, int motor0, int motor1, int motor2, int motor3) {
-  bool hl1 = true;
-  bool hl2 = true;
-  if (deg1 > 0) hl1 = false;
-  if (deg2 > 0) hl2 = false;
-  if (deg1) {
-    //Serial.println("hl1: " +(String)hl1);
-    if (motor0) digitalWrite(step_dir[0], hl1);
-    if (motor1) digitalWrite(step_dir[1], hl1);
-    if (motor2) digitalWrite(step_dir[2], hl1);
-    if (motor3) digitalWrite(step_dir[3], hl1);
+void move_motor(long spd, long steps[]) {
+
+  long maxSteps = 0;
+  for (int i = 0; i < 4; i++) {
+    bool hl = true;
+    if (steps[i] > 0) hl = false;
+    digitalWrite(step_dir[i], hl);
+    steps[i] = abs(steps[i]);
+    if(steps[i] > maxSteps) maxSteps = steps[i];
   }
-  if (deg2) {
-    if (!motor0) digitalWrite(step_dir[0], hl2);
-    if (!motor1) digitalWrite(step_dir[1], hl2);
-    if (!motor2) digitalWrite(step_dir[2], hl2);
-    if (!motor3) digitalWrite(step_dir[3], hl2);
-  }
-  long steps1 = abs(deg1) * turn_steps / 360;
-  long steps2 = abs(deg2) * turn_steps / 360;
-  long avg_time = 1000000 * 60 / turn_steps / spd;
-  long max_time = 375;
+
+  long avgTime = 1000000 * 60 / turn_steps / spd;
+  long maxTime = 375;
   long slope = 10;
-  long accel = min(max(steps1, steps2), max(0, (max_time - avg_time) / slope));
-  bool motor_hl = false;
-  for (int i = 0; i < max(steps1, steps2); i++) {
-    motor_hl = !motor_hl;
-    if (i < steps1) {
-      if (motor0) digitalWrite(step_pul[0], motor_hl);
-      if (motor1) digitalWrite(step_pul[1], motor_hl);
-      if (motor2) digitalWrite(step_pul[2], motor_hl);
-      if (motor3) digitalWrite(step_pul[3], motor_hl);
+  long accel = min(maxSteps, max(0, (maxTime - avgTime) / slope));
+  bool motorPulse = false;
+  for (int i = 0; i < maxSteps; i++) {
+    motorPulse = !motorPulse;
+    
+    for (int j = 0; j < 4; j++) {
+      if (i < steps[j]) {
+        digitalWrite(step_pul[j], motorPulse);
+      }
     }
-    if (i < steps2) {
-      if (!motor0) digitalWrite(step_pul[0], motor_hl);
-      if (!motor1) digitalWrite(step_pul[1], motor_hl);
-      if (!motor2) digitalWrite(step_pul[2], motor_hl);
-      if (!motor3) digitalWrite(step_pul[3], motor_hl);
-    }
-    long delay_time = avg_time;
-    if (i < accel) delay_time = max_time - slope * i;
+    
+    long delay_time = avgTime;
+    if (i < accel) delay_time = maxTime - slope * i;
     delayMicroseconds(delay_time);
   }
-  
 }
 
+class ClockSteppers{
+  public:
+    const int speed = 800;
+    const long turnSteps = 400 * 2;
+    const int stepPul[4] = {42, 44, 46, 48};
+    const int stepDir[4] = {43, 45, 47, 49};
+    
+    long currentPositions[4] = {0,0,0,0};
+
+    void moveMotor(long steps[]) {
+
+      long maxSteps = 0;
+      for (int i = 0; i < 4; i++) {
+        bool hl = true;
+        if (steps[i] > 0) hl = false;
+        digitalWrite(stepDir[i], hl);
+        steps[i] = abs(steps[i]);
+        if(steps[i] > maxSteps) maxSteps = steps[i];
+        Serial.println("steps: "+String(steps[i]));
+      }
+
+      long avgTime = 1000000 * 60 / turnSteps / speed;
+      long maxTime = 375;
+      long slope = 10;
+      long accel = min(maxSteps, max(0, (maxTime - avgTime) / slope));
+      bool motorPulse = false;
+      for (int i = 0; i < maxSteps; i++) {
+        motorPulse = !motorPulse;
+        
+        for (int j = 0; j < 4; j++) {
+          if (i < steps[j]) {
+            
+            digitalWrite(stepPul[j], motorPulse);
+          }
+        }
+        
+        long delay_time = avgTime;
+        if (i < accel) delay_time = maxTime - slope * i;
+        delayMicroseconds(delay_time);
+      }
+    }
+
+    void moveTo(long toPositions[]){
+      long steps[4];
+      for(int i =0; i<4;i++){
+        steps[i] = toPositions[i] - currentPositions[i];
+        Serial.println("steps: "+String(steps[i]));
+      }
+      
+      moveMotor(steps);
+
+      for(int i =0; i<4;i++){
+        currentPositions[i] = toPositions[i];
+      }
+    }
+};
+
+ClockSteppers clockSteppers;
 
 void loop() {
 
@@ -147,11 +190,15 @@ void loop() {
   //delay(1000);
 //
   //moveSteppers(new long[2]{0, 0});
-  int x = millis();
-  move_motor(900, 90, 90, 1, 1, 1, 1);
-  delay(10);
-  move_motor(900, -90, -90, 1, 1, 1, 1);
-  Serial.println(millis() - x);
+  //int x = millis();
+  //move_motor(800,new long[4]{200, 200, 200, 200});
+  //delay(10);
+  //move_motor(800, new long[4]{-200, -200, -200, -200});
+  //Serial.println(millis() - x);
+
+  clockSteppers.moveTo(new long[4]{200, 200, 200, 200});
+  delay(1000);
+  clockSteppers.moveTo(new long[4]{-200, -200, -200, -200});
   
 
 }

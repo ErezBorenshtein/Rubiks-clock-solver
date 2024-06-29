@@ -214,7 +214,7 @@ class Clock:
             final_movement_str+=final_movement[i]+","
 
         print(final_movement_str)
-        self.print_clock()
+        #self.print_clock()
 
         return final_movement_str
         
@@ -544,7 +544,7 @@ def main():
     #clock.print_clock()
     #scramble = "UR1+ DR4- DL2- UL2- U3- R1+ D1- L3+ ALL5- y2 U2- R2+ D1+ L5- ALL0+"
     #scramble = "UR1- DR5- DL5- UL3- U3+ R3- D1- L6+ ALL2- y2 U1- R2+ D3+ L0+ ALL2+"
-    scramble = "UR1- DR0+ DL4+ UL2+ U0+ R0+ D2+ L4+ ALL6+ y2 U5- R1- D1+ L2+ ALL3+"
+    scramble = "UR4- DR2- DL1+ UL5+ U1- R4+ D1- L6+ ALL1+ y2 U3- R2+ D2+ L3- ALL3+"
     clock.scramble(scramble)
     clock.print_clock()
     print("--------------------------------------")

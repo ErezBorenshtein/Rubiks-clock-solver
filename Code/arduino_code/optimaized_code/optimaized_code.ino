@@ -14,6 +14,16 @@
 #define ROTATION_DELAY 0
 #define MIN_PULSE_WIDTH 3
 
+volatile const int stepPul[4] = {48, 46, 44, 42};
+volatile const int stepDir[4] = {49, 47, 45, 43};
+
+void disablePins(){
+  for(int i =0; i<4;i++){
+    digitalWrite(stepPul[i],LOW);
+    digitalWrite(stepDir[i],LOW);
+  }
+}
+
 class Solenoids{
   public:
 
@@ -40,14 +50,13 @@ class Solenoids{
       solenoidBDR = 25;
       solenoidBDL = 27;
       solenoidBUL = 29;
-    }
 
-    void setUp(){
       for(int i =solenoidTUR; i <= solenoidBUL;i++){
           pinMode(i,OUTPUT);
 
       }
     }
+
 
     void push(int pin, int side){
       int actualPin = pin+side; // Top or bottom solenoids
@@ -76,13 +85,81 @@ class Solenoids{
     }
 };
 
+class ClockSteppers{
+  public:
+    const int speed = 700;
+    const long turnSteps = 400 * 2;
+    
+    long currentPositions[4] = {0,0,0,0};
+
+    ClockSteppers(){
+      for(int i =0; i<4;i++){
+        pinMode(stepPul[i],OUTPUT);
+        pinMode(stepDir[i],OUTPUT);
+      }
+      
+      disablePins();
+    }
+
+    void moveMotor(long steps[]) {
+
+      long maxSteps = 0;
+      for (int i = 0; i < 4; i++) {
+        bool hl = true;
+        if (steps[i] > 0) hl = false;
+        digitalWrite(stepDir[i], hl);
+        steps[i] = abs(steps[i]);
+        steps[i] *= 2; // pulse is defined by lowering and rising the pin so it should be doubled
+        if(steps[i] > maxSteps) maxSteps = steps[i];
+        //steps[i] = steps[i] * turnSteps / 360;
+        //Serial.println("steps: "+String(steps[i]));
+      }
+      //Serial.println("maxSteps: "+String(maxSteps));
+
+      long avgTime = 1000000 * 60 / turnSteps / speed;
+      long maxTime = 375;
+      long slope = 10;
+      long accel = min(maxSteps, max(0, (maxTime - avgTime) / slope));
+      bool motorPulse = false;
+      for (int i = 0; i < maxSteps; i++) {
+        motorPulse = !motorPulse;
+        
+        for (int j = 0; j < 4; j++) {
+          if (i < steps[j]) {
+            digitalWrite(stepPul[j], motorPulse);
+          }
+        }
+        
+        long delay_time = avgTime;
+        if (i < accel) delay_time = maxTime - slope * i;
+        //Serial.println("delay_time: "+String(delay_time));
+        delayMicroseconds(delay_time);
+      }
+    }
+
+    void moveTo(long toPositions[]){
+      long steps[4];
+      for(int i =0; i<4;i++){
+        steps[i] = toPositions[i] - currentPositions[i];
+        //Serial.println("steps: "+String(steps[i]));
+      }
+
+      moveMotor(steps);
+
+      for(int i =0; i<4;i++){
+        currentPositions[i] = toPositions[i];
+      }
+    }
+
+};
+
 
 class Clock{
   public:
     //const int stepsPerRotation = (400*(3.0/4))*2; // 400 is the number of steps per rotation, 3/4 is the gear ratio, 8 is the microstepping
-    const int stepsPerRotation = (400*(12.0/22.0))*2; // 400 is the number of steps per rotation, 3/4 is the gear ratio, 8 is the microstepping
+    const float stepsPerRotation = (400*(12.0/22.0))*2; // 400 is the number of steps per rotation, 3/4 is the gear ratio, 8 is the microstepping
     //const int stepsPerRotation = (400*(9.9/18.15))*2; // 400 is the number of steps per rotation, 12/22 is the gear ratio, 8 is the microstepping
-    int offset[4] = {0,0,0,0}; //gear ratio offset for each wheel
+    //int offset[4] = {0,0,0,0}; //gear ratio offset for each wheel
     
 
     AccelStepper* stepperUR;
@@ -93,6 +170,8 @@ class Clock{
     MultiStepper multiSteppers;
 
     Solenoids solenoids;
+
+    ClockSteppers clockSteppers;
 
     AccelStepper* steppers[4];
 
@@ -107,14 +186,13 @@ class Clock{
       //steppers[3] = (stepperUL = new AccelStepper(1, 12, 13));
 
       //with TB6600 drivers
-      steppers[0] = (stepperUR = new AccelStepper(1, 48, 49));
+      /*steppers[0] = (stepperUR = new AccelStepper(1, 48, 49));
       steppers[1] = (stepperDR = new AccelStepper(1, 46, 47));
       steppers[2] = (stepperDL = new AccelStepper(1, 44, 45));
-      steppers[3] = (stepperUL = new AccelStepper(1, 42, 43));
+      steppers[3] = (stepperUL = new AccelStepper(1, 42, 43));*/
+      
 
-      solenoids.setUp();
-
-      for(int i=0;i<4;i++){
+      /*for(int i=0;i<4;i++){
         AccelStepper* stepper = steppers[i];
 
         multiSteppers.addStepper(*stepper);
@@ -126,7 +204,7 @@ class Clock{
         stepper->setCurrentPosition(0); // Set the current position to 0 steps
         stepper->setMinPulseWidth(MIN_PULSE_WIDTH);
         //stepper->setSpeed(spd);
-      }
+      }*/
 
     }
     
@@ -135,53 +213,30 @@ class Clock{
       //Serial.println("setting pins: "+String(stateUR)+String(stateDR)+String(stateDL)+String(stateUL));
     }
 
-    void moveSteppers(long positions[]) {
-
-      // Move each stepper to the target position
-      for(int i =0; i<4;i++){
-        steppers[i]->moveTo(positions[i]);
-      }
-
-      while (steppers[0]->distanceToGo() != 0|| steppers[1]->distanceToGo() != 0 || steppers[2]->distanceToGo() != 0 || steppers[3]->distanceToGo() != 0) {
-        for(int i =0; i<4;i++){
-          steppers[i]->run();
-        }
-    }
-}
 
     void rotate(float positions_degs[4]){
       long steps[4];
       for(int i=0; i<4; i++){
-        steps[i] = (positions_degs[i]*(stepsPerRotation+offset[i])/360.0)+0.5;
+        //steps[i] = (positions_degs[i]*(stepsPerRotation+offset[i])/360.0)+0.5;
+        float roundFactor = positions_degs[i]>0 ? 0.5: -0.5;
+        steps[i] = (positions_degs[i]*stepsPerRotation/360.0)+roundFactor;
         //Serial.println("steps "+String(i)+": "+String(steps[i])+ "      degs: "+String(positions_degs[i]));
       }
+
+      clockSteppers.moveTo(steps);
+
       /*multiSteppers.moveTo(steps);
       
       while(multiSteppers.run()){
         //delayMicroseconds(25);
       }*/
 
-      moveSteppers(steps);
     }
 
     void reset(){
       solenoids.reset();
     }
 
-    void test(){
-
-      long positions[] = {0,0,0,0};
-      multiSteppers.moveTo(positions);
-      while(multiSteppers.run());
-
-      delay(1000);
-
-      positions[0] = 109;
-      multiSteppers.moveTo(positions);
-      while(multiSteppers.run());
-
-    delay(1000);
-    }
 };
 
 class ClockOperator{
@@ -218,7 +273,7 @@ class ClockOperator{
       for(int i=0 ; i<4 ; i++){   
           float hours_deg = (command[i*2+2]-'0')*360.0/12.0;
 
-          if(command[i*2+1] == '+'){
+          if(command[i*2+1] == '-'){
             hours_deg*=-1;
           }
 
@@ -280,12 +335,12 @@ class ClockOperator{
       if(command[0] == 'r'){
         rotate(command);
         delay(ROTATION_DELAY);
-        
       }
+
       if(command[0] == 'p'){
         setPins(command);
-        //delay(60);
       }
+
       //delay(1000);
       
     }
@@ -337,6 +392,8 @@ String readSolution(){
   return commands;
 }
 
+ClockOperator clockOperator;
+String commands;
 
 void powerEnabler(){
   int mode;
@@ -347,10 +404,11 @@ void powerEnabler(){
 
   }while(mode==1);
   digitalWrite(MOTOR_ENABLE_PIN, HIGH);
+
+  disablePins();
+  
 }
 
-ClockOperator clockOperator;
-String commands;
 
 void setup2() {
   Serial.begin(115200);
@@ -390,7 +448,11 @@ void setup() {
   //UR1+ DR4- DL2- UL2- U3- R1+ D1- L3+ ALL5- y2 U2- R2+ D1+ L5- ALL0+
   //commands = "p01110000 r-2-2-2-2 p00110000 r-3-3-3-3 p00010000 r-3-3-3+4 p01010000 r+6+1+6+1 p01000000 r-4-5-4-4 p11000000 r-5-5+1+1 p11010000 r-2-2+1-2\n";
   //UR2+ DR4- DL5- UL1- U5- R1- D0+ L4+ ALL1+ y2 U4+ R1+ D3- L2+ ALL2-
-  commands = "p01110000 r+4-2-2-2 p00110000 r-2-2-2-2 p00010000 r-4-4-4+4 p01010000 r-3+6-3+6 p01000000 r+6-3+6+6 p11000000 r-6-6+4+4 p11010000 r+0+0-3+0\n";
+  //commands = "p01110000 r+4-2-2-2 p00110000 r-2-2-2-2 p00010000 r-4-4-4+4 p01010000 r-3+6-3+6 p01000000 r+6-3+6+6 p11000000 r-6-6+4+4 p11010000 r+0+0-3+0\n";
+
+  //UR1- DR0+ DL4+ UL2+ U0+ R0+ D2+ L4+ ALL6+ y2 U5- R1- D1+ L2+ ALL3+
+  //commands = "p01110000 r-5-2-2-2 p00110000 r-5-5+3+3 p00010000 r-2-2-2-1 p01010000 r-4-5-4-5 p01000000 r+5+6+5+5 p11000000 r-5-5-2-2 p11010000 r-1-1+1-1\n";
+  commands = "p01110000 r-3-4-4-4 p00110000 r+0+0+0+0 p00010000 r-3-3-3+0 p01010000 r+3-5+3-5 p01000000 r+2+2+2+2 p11000000 r+0+0+0+0 p11010000 r-2-2+2-2\n";
   
   Serial.println("speed: "+(String)ROTATION_SPEED);
   clockOperator.reset();  //needed only after optimizing pin settings
@@ -398,7 +460,7 @@ void setup() {
   
 }
 
-void loop2() {
+void loop() {
 
   unsigned long start_time = millis();
   //clockOperator.runCommand("p100100");s
@@ -412,7 +474,7 @@ void loop2() {
 
 }
 
-void loop(){
+void loop2(){
   /*clockOperator.runCommand("p00000000");
   clockOperator.runCommand("p00010000");
   clockOperator.runCommand("p00100000");
@@ -456,7 +518,9 @@ void loop(){
   //clockOperator.runCommand("p01010000");
   //clockOperator.runCommand("p00000000");
   //long x = millis();
-  //clockOperator.runCommand("r+5+0+0+0");
+  clockOperator.runCommand("r+5+0+0+0");
+  delay(1000);
+  clockOperator.runCommand("r-5+0+0+0");
   //clockOperator.runCommand("r-2+0+0+0");
   //clockOperator.runCommand("r+4+0+0+0");
   //clockOperator.runCommand("r-5+0+0+0");
@@ -468,25 +532,27 @@ void loop(){
   //clockOperator.runCommand("r+4+0+0+0");
   //clockOperator.runCommand("r-2+0+0+0");
   //clockOperator.runCommand("r+1+0+0+0");
-  //clockOperator.runCommand("r+0+0+0+3");
-  //clockOperator.runCommand("r+0+0+0-3");
-  //clockOperator.runCommand("r+0+0+0+3");
-  //clockOperator.runCommand("r+0+0+0-3");
-  //clockOperator.runCommand("r+0+0+0+3");
-  //clockOperator.runCommand("r+0+0+0-3");
-  //clockOperator.runCommand("r+0+0+0+3");
-  //clockOperator.runCommand("r+0+0+0+3");
-  //clockOperator.runCommand("r+0+0+0-3");
-  //clockOperator.runCommand("r+0+0+0+3");
-  //clockOperator.runCommand("r+0+0+0-3");
-  //clockOperator.runCommand("r+0+0+0+3");
-  unsigned long x = millis();
-  clockOperator.clock.rotate(new float[4]{0,0,0,108});
-  //delay(1000);
-  clockOperator.clock.rotate(new float[4]{0,0,0,0});
-  Serial.println(millis()-x);
+  //clockOperator.runCommand("r+3+0+0+0");
+  //clockOperator.runCommand("r-3+0+0+0");
+  //clockOperator.runCommand("r+3+0+0+0");
+  //clockOperator.runCommand("r-3+0+0+0");
+  //clockOperator.runCommand("r+3+0+0+0");
+  //clockOperator.runCommand("r-3+0+0+0");
+  //clockOperator.runCommand("r+3+0+0+0");
+  //clockOperator.runCommand("r+3+0+0+0");
+  //clockOperator.runCommand("r-3+0+0+0");
+  //clockOperator.runCommand("r+3+0+0+0");
+  //clockOperator.runCommand("r-3+0+0+0");
+  //clockOperator.runCommand("r+3+0+0+0");
+  //Serial.println(millis()-x);
+  //unsigned long x = millis();
+  //clockOperator.clock.rotate(new float[4]{0,0,0,0});
+  //delay(10);
+  //clockOperator.clock.rotate(new float[4]{0,0,0,-108});
+  //Serial.println(millis()-x);
   
-
+  //clockOperator.clock.clockSteppers.moveTo(new long[4]{200,200,200,200});
+  //clockOperator.clock.clockSteppers.moveTo(new long[4]{-200,-200,-200,-200});
   //Serial.println(millis()-x);
   //clockOperator.runCommand("p11000000");
   //clockOperator.runCommand("r+0+0+6+0");
@@ -494,6 +560,6 @@ void loop(){
   //Serial.println(millis()-x);
 
   //clockOperator.clock.test();
-
-  delay(1000);
+  disablePins();
+  delay(5000);
 }  

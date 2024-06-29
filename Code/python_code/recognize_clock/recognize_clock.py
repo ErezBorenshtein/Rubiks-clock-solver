@@ -313,7 +313,7 @@ def find_available_cameras(max_index=10):
 
 def main():
     centers_buffer.prepare_positions(20,9)
-    camera = cv2.VideoCapture(1)
+    camera = cv2.VideoCapture(0)
     hour1 = read_clock(camera)
     hour2 = read_clock(camera)
 
