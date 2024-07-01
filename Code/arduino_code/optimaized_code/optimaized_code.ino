@@ -460,7 +460,7 @@ void setup() {
   
 }
 
-void loop() {
+void loop2() {
 
   unsigned long start_time = millis();
   //clockOperator.runCommand("p100100");s
@@ -474,11 +474,11 @@ void loop() {
 
 }
 
-void loop2(){
-  /*clockOperator.runCommand("p00000000");
-  clockOperator.runCommand("p00010000");
-  clockOperator.runCommand("p00100000");
-  clockOperator.runCommand("p00110000");
+void loop(){
+  clockOperator.runCommand("p00000000");
+  //clockOperator.runCommand("p00010000");
+  //clockOperator.runCommand("p00100000");
+  /*clockOperator.runCommand("p00110000");
   clockOperator.runCommand("p01000000");
   clockOperator.runCommand("p01010000");
   clockOperator.runCommand("p01100000");
@@ -518,9 +518,9 @@ void loop2(){
   //clockOperator.runCommand("p01010000");
   //clockOperator.runCommand("p00000000");
   //long x = millis();
-  clockOperator.runCommand("r+5+0+0+0");
-  delay(1000);
-  clockOperator.runCommand("r-5+0+0+0");
+  //clockOperator.runCommand("r+5+0+0+0");
+  //delay(1000);
+  //clockOperator.runCommand("r-5+0+0+0");
   //clockOperator.runCommand("r-2+0+0+0");
   //clockOperator.runCommand("r+4+0+0+0");
   //clockOperator.runCommand("r-5+0+0+0");

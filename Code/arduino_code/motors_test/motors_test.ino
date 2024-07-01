@@ -1,4 +1,4 @@
-const long turn_steps = 400 * 2;
+/*const long turn_steps = 400 * 2;
 const int step_dir[4] = {49, 7, 11, 43};
 const int step_pul[4] = {48, 8, 12, 42};
 
@@ -80,4 +80,18 @@ void loop() {
   delay(1000);
   
 
+}*/
+
+int ssrPin = 9; // Pin connected to the SSR control terminal
+
+void setup() {
+  pinMode(ssrPin, OUTPUT); // Set the SSR pin as an output
 }
+
+void loop() {
+  digitalWrite(ssrPin, HIGH); // Turn on the SSR (and the load)
+  delay(1000); // Wait for 1 second
+  digitalWrite(ssrPin, LOW); // Turn off the SSR (and the load)
+  delay(1000); // Wait for 1 second
+}
+

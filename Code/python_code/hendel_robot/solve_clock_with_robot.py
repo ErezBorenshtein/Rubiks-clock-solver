@@ -1,9 +1,11 @@
 import serial
 import time
 from solve_clock_virtualy import Clock
+from recognize_clock  import * 
+import cv2
 
     
-def main():
+def solve_without_camera():
     clock = Clock()
     #clock.set_clock([
     #                #front
@@ -40,5 +42,49 @@ def main():
         finally:
             time.sleep(0.01)
 
+def solve_with_camera():
+    print("Solving clock with camera")
+    centers_buffer.prepare_positions(20,9)
+
+    camera = cv2.VideoCapture(0)
+    hour1 = read_clock(camera)
+    hour2 = read_clock(camera)
+    print("hour1: ",hour1)
+    print("hour2: ",hour2)
+    print("Clock read successfully")
+    cv2.destroyAllWindows()
+
+    clock_state = hour2 +hour1
+
+    clock = Clock()
+    clock.set_clock(clock_state)
+
+    commands = clock.solve_clock_7_simul()
+    commands = clock.prepare_commands(commands)+"\n"
+    commands = clock.optimize_commnds_7_simul(commands)
+
+    ser = serial.Serial("COM5",115200)
+    time.sleep(3)
+    data = ser.readline().decode().strip()
+
+    print(data)
+
+    while(data != "ready"):
+        data = ser.readline().decode().strip()
+        print(data)
+
+    print("Arduino is ready to receive data.")
+    ser.write(commands.encode())
+    ser.flush()
+    print("Data sent over serial successfully.")
+
+    while True:
+        try:
+            data = ser.readline().decode().strip()
+            print(data)
+        finally:
+            time.sleep(0.01)
+
+
 if __name__ == "__main__":
-    main()
+    solve_with_camera()

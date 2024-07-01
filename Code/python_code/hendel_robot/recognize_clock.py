@@ -6,6 +6,19 @@ from clock_buffer import BufferManager
 buffer = BufferManager(10,9)
 centers_buffer = BufferManager(15,9)
 
+max_thresh = 255
+
+top_min_threshold = 32
+bottom_min_threshold = 92
+
+kernel_rate = 1
+
+circle_param1 = 300
+circle_param2 = 20
+
+threshold1 = 42  
+threshold2 = 73
+
 def rad_to_deg(radians):
     return radians * (180 / np.pi)
 
@@ -137,23 +150,20 @@ def extract_image(img_grayscale, min_thresh, max_thresh, kernel_rate):
     edges = cv2.Canny(thresh, 100, 200)
     return thresh,edges
 
+def extract_circle_image(img_grayscale, kernel_rate):
+    thresh = apply_threshold(img_grayscale)
+    kernel = np.ones((kernel_rate, kernel_rate), np.uint8)
+    thresh = cv2.dilate(thresh, kernel, iterations=1)
+    edges = cv2.Canny(thresh, 100, 200)
+    return thresh,edges
+
 def contains_none(arrays):
     return any(any(cell is None for cell in row) for row in arrays)
 
-def read_clock(camera):
+def read_clock(camera) -> list[int]:
     font = cv2.FONT_HERSHEY_SIMPLEX
     img2 = 0
 
-    circle_min_thresh = 64 
-    max_thresh = 255
-    
-    top_min_threshold = 32
-    bottom_min_threshold = 129
-
-    kernel_rate = 1
-
-    circle_param1 = 300
-    circle_param2 = 20
     show_contour_num = 0
 
     while True:
@@ -171,24 +181,25 @@ def read_clock(camera):
     
         img= img2.copy()
         # Thresholding part
-        circle_thresh, circle_edges =   extract_image(img_grayscale, circle_min_thresh,     max_thresh, kernel_rate)
+        circle_thresh, circle_edges =   extract_circle_image(img_grayscale, kernel_rate)
         top_thresh, top_edges =         extract_image(img_grayscale, top_min_threshold,     max_thresh, kernel_rate)
         bottom_thresh, bottom_edges =   extract_image(img_grayscale, bottom_min_threshold,  max_thresh, kernel_rate)
 
         top_contours, hierarchy = cv2.findContours(top_edges.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
         bottom_contours, hierarchy = cv2.findContours(bottom_edges.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
-
+        
+        # Circle Detection Part
+        circles = cv2.HoughCircles(circle_edges, cv2.HOUGH_GRADIENT, 1, 35, param1=circle_param1, param2=circle_param2, minRadius=32, maxRadius=55)
+        if (circles is None or len(circles.shape) == 1):
+            cv2.imshow('Final', img)
+            cv2.waitKey(1)
+            continue
+        
         cv2.imshow('CIRCLE EDGES', circle_edges)
         cv2.imshow('CIRCLE THRESHOLDED IMAGE', circle_thresh)
         cv2.imshow('TOP THRESHOLDED IMAGE', top_thresh)
         cv2.imshow('BOTTOM THRESHOLDED IMAGE', bottom_thresh)
 
-
-        
-        # Circle Detection Part
-        circles = cv2.HoughCircles(circle_edges, cv2.HOUGH_GRADIENT, 1, 35, param1=circle_param1, param2=circle_param2, minRadius=40, maxRadius=63)
-        if (circles is None or len(circles.shape) == 1):
-            continue
         circles = np.uint16(np.around(circles))
         circles = np.squeeze(circles)
         
@@ -203,18 +214,17 @@ def read_clock(camera):
                 # Displaying Circle Around Clock
                 cv2.circle(img, centre, maxrad, (20, 90, 230), 2)
                 cv2.circle(img, centre, 2, (0, 0, 255), 3)
-            cv2.imshow('Final', img)
-            cv2.waitKey(1)
+            show_final_img(img)
 
         if (len(circles) != 9):
             continue
         
         sorted_indices = get_circles_indices(circles)
 
-        circles[sorted_indices[0], 2] =circles[sorted_indices[1], 2] =circles[sorted_indices[2], 2] = 43
-        circles[sorted_indices[3], 2] =circles[sorted_indices[4], 2] =circles[sorted_indices[5], 2] = 40
-        circles[sorted_indices[6], 2] =circles[sorted_indices[7], 2] =37
-        circles[sorted_indices[8], 2] = 36
+        circles[sorted_indices[0], 2] =circles[sorted_indices[1], 2] =circles[sorted_indices[2], 2] = 33
+        circles[sorted_indices[3], 2] =circles[sorted_indices[4], 2] =circles[sorted_indices[5], 2] = 33
+        circles[sorted_indices[6], 2] =circles[sorted_indices[7], 2] =30
+        circles[sorted_indices[8], 2] = 30
 
         centers_buffer.add_to_buffer([[circles[sorted_indices[0]][0],circles[sorted_indices[0]][1]],
                                       [circles[sorted_indices[1]][0],circles[sorted_indices[1]][1]],
@@ -274,32 +284,43 @@ def read_clock(camera):
             cv2.circle(img, centre, maxrad, (20, 90, 230), 2)
             cv2.circle(img, centre, 2, (0, 0, 255), 3)
         
-
-        cv2.imshow('Final', img)
-        key = cv2.waitKey(1) & 0xFF
-
-        if key == 27:  # ESC key to exit
-            break
-        elif key == ord('1'):
-            circle_param1 = max(0, circle_param1 - 1)
-        elif key == ord('2'):
-            circle_param1 = min(500, circle_param1 + 1)
-        elif key == ord('3'):
-            bottom_min_threshold = max(0, bottom_min_threshold - 1)
-        elif key == ord('4'):
-            bottom_min_threshold = min(500, bottom_min_threshold + 1)
-        elif key == ord('5'):
-            circle_param2 -=1
-        elif key == ord('6'):
-            circle_param2 +=1
-        elif key == ord('7'):
-            show_contour_num -=1
-        elif key == ord('8'):
-            show_contour_num +=1
-        elif key == ord('a'):
+        if show_final_img(img):
             return hours
-        
-    cv2.destroyAllWindows()
+    
+
+def show_final_img(img):
+    global circle_param1
+    global bottom_min_threshold
+    global circle_param2
+    global threshold1
+    global threshold2
+    
+
+    cv2.imshow('Final', img)
+    key = cv2.waitKey(1) & 0xFF
+    
+    if key == 27:  # ESC key to exit
+        return False
+    elif key == ord('1'):
+        circle_param1 = max(0, circle_param1 - 1)
+        print(circle_param1)
+    elif key == ord('2'):
+        circle_param1 = min(500, circle_param1 + 1)
+        print(circle_param1)
+    elif key == ord('3'):
+        threshold1 -=1
+        print(threshold1)
+    elif key == ord('4'):
+        threshold1 +=1 
+        print(threshold1)
+    elif key == ord('5'):
+        bottom_min_threshold -=1
+        print(bottom_min_threshold)
+    elif key == ord('6'):
+        bottom_min_threshold +=1
+        print(bottom_min_threshold)
+    elif key == ord('a'):
+        return True
 
 def find_available_cameras(max_index=10):
     available_cameras = []
@@ -310,12 +331,40 @@ def find_available_cameras(max_index=10):
             cap.release()
     return available_cameras
 
+def apply_threshold(img):
+
+    global threshold1
+    global threshold2
+
+    # Create a copy of the original image to store the result
+    result = np.copy(img)
+
+    y_split = (img.shape[0] // 3)*2
+
+    # Apply the first threshold to the upper part of the image (y = 1 to y = 200)
+    upper_part = img[:y_split, :]
+    _, upper_thresh = cv2.threshold(upper_part, threshold1, 255, cv2.THRESH_BINARY)
+
+    # Apply the second threshold to the lower part of the image (y = 200 to y = max)
+    lower_part = img[y_split:, :]
+    _, lower_thresh = cv2.threshold(lower_part, threshold2, 255, cv2.THRESH_BINARY)
+
+    # Combine the two parts back into one image
+    result[:y_split, :] = upper_thresh
+    result[y_split:, :] = lower_thresh
+    return result
+
 
 def main():
     centers_buffer.prepare_positions(20,9)
     camera = cv2.VideoCapture(0)
     hour1 = read_clock(camera)
     hour2 = read_clock(camera)
+    cv2.destroyAllWindows()
+    
+    print("hour1: ",hour1)
+    print("hour2: ",hour2)
+    
 
 
 

@@ -159,7 +159,7 @@ class Clock:
         # Flip the pins after y2 rotaqtion
         return [1 if pin == 0 else 0 for pin in reversed(self.clock_pins)]
 
-    def print_clock(self):
+    def print(self):
         for i in range(len(self.clock)):
             print(self.clock[i], end=" ")
             if (i + 1) % 3 == 0 and (i + 1) % 9 != 0:
@@ -546,7 +546,7 @@ def main():
     #scramble = "UR1- DR5- DL5- UL3- U3+ R3- D1- L6+ ALL2- y2 U1- R2+ D3+ L0+ ALL2+"
     scramble = "UR4- DR2- DL1+ UL5+ U1- R4+ D1- L6+ ALL1+ y2 U3- R2+ D2+ L3- ALL3+"
     clock.scramble(scramble)
-    clock.print_clock()
+    clock.print()
     print("--------------------------------------")
     commands = clock.solve_clock_7_simul()
     print(commands)
