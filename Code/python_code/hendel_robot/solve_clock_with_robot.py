@@ -42,32 +42,35 @@ def solve_without_camera():
         finally:
             time.sleep(0.01)
 
+
+
+
 def solve_with_camera():
     print("Solving clock with camera")
     centers_buffer.prepare_positions(20,9)
 
     camera = cv2.VideoCapture(0)
     hour1 = read_clock(camera)
-    hour2 = read_clock(camera)
     print("hour1: ",hour1)
+    hour2 = read_clock(camera)
     print("hour2: ",hour2)
     print("Clock read successfully")
     cv2.destroyAllWindows()
 
-    clock_state = hour2 +hour1
+    clock_state = hour1 + hour2
 
     clock = Clock()
     clock.set_clock(clock_state)
+    clock.print()
 
     commands = clock.solve_clock_7_simul()
-    commands = clock.prepare_commands(commands)+"\n"
-    commands = clock.optimize_commnds_7_simul(commands)
-
-    ser = serial.Serial("COM5",115200)
+    commands = clock.prepare_commands(commands)
+    commands = clock.optimize_commnds_7_simul(commands)+" \n"
+    #commands = "p01110000 r-5-2-2-2 p00110000 r-5-5+3+3 p00010000 r-2-2-2-1 p01010000 r-4-5-4-5 p01000000 r+5+6+5+5 p11000000 r-5-5-2-2 p11010000 r-1-1+1-1\n"
+    ser = serial.Serial("COM7",115200)
     time.sleep(3)
-    data = ser.readline().decode().strip()
-
-    print(data)
+    
+    data = ""
 
     while(data != "ready"):
         data = ser.readline().decode().strip()

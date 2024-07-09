@@ -11,8 +11,12 @@
 //with TB6600 drivers
 //#define ROTATION_SPEED 13000 //max possible speed
 #define ROTATION_SPEED 4000
+//#define ROTATION_DELAY 30 for testing without pins
 #define ROTATION_DELAY 0
 #define MIN_PULSE_WIDTH 3
+
+#define PUSHER_DELAY 25
+
 
 volatile const int stepPul[4] = {48, 46, 44, 42};
 volatile const int stepDir[4] = {49, 47, 45, 43};
@@ -77,7 +81,7 @@ class Solenoids{
       push(solenoidTDL,stateDL);
       push(solenoidTUL,stateUL);
 
-      delay(45); //the lowest time that the solenoids can be on
+      delay(PUSHER_DELAY); //the lowest time that the solenoids can be on
       for(int i =solenoidTUR; i <= solenoidBUL;i++){
           digitalWrite(i,LOW);
       }
@@ -325,7 +329,7 @@ class ClockOperator{
 
     void runCommand(String command){
 
-      //Serial.println("running command: "+command);
+      Serial.println("running command: "+command);
 
       if(!isCommandValid(command)){
         Serial.println("command is not valid");
@@ -341,7 +345,7 @@ class ClockOperator{
         setPins(command);
       }
 
-      //delay(1000);
+      //delay(5000);
       
     }
 
@@ -349,7 +353,7 @@ class ClockOperator{
 
       int chunkSize= 9+1;
       int numOfCommands = solution.length()/chunkSize;
-      //Serial.println("num of commands: "+String(numOfCommands));
+      Serial.println("num of commands: "+String(numOfCommands));
       for(int i =0; i<numOfCommands;i++){
         String command = solution.substring(i*chunkSize,(i+1)*chunkSize-1);
         //Serial.println("command"+command);
@@ -374,26 +378,8 @@ class ClockOperator{
 };
 
 
-String readSolution(){
-  String commands;
-  Serial.println("reading solution");
-
-  while(!Serial.available()){
-    delay(10);
-  }
-
-  if (Serial.available() > 0) {
-    // Read the incoming data
-    commands = Serial.readStringUntil('\n');
-    
-    // Print the received string
-    Serial.println("Received: " + commands);
-  }
-  return commands;
-}
-
 ClockOperator clockOperator;
-String commands;
+String commands = "";
 
 void powerEnabler(){
   int mode;
@@ -410,12 +396,9 @@ void powerEnabler(){
 }
 
 
-void setup2() {
+void setup() {
   Serial.begin(115200);
 
-  while (!Serial) {
-    delay(10); // Wait for serial port to connect
-  }
 
   pinMode(LIMIT_PIN, INPUT_PULLUP);
   pinMode(MOTOR_ENABLE_PIN, OUTPUT);
@@ -423,10 +406,21 @@ void setup2() {
   attachInterrupt(digitalPinToInterrupt(LIMIT_PIN), powerEnabler, CHANGE);
   powerEnabler();
 
+  // Wait for serial port to open
+  while (!Serial) {
+    delay(10); // Wait for serial port to connect
+  }
+
   Serial.println("ready"); //!important! part of the protocol
   
-  commands = readSolution();
-  Serial.println("commands: "+commands);
+  while(commands == ""){
+    if (Serial.available() > 0) {
+      // Read the incoming data
+      commands = Serial.readStringUntil('\n');
+    }
+  }
+  // Print the received string
+  Serial.println("Received: " + commands);
   
   //commands = "p0111   r+01000 r-20111 p0011   r+01100 r+00011 p0001   r-10001 r+11110 p0101   r+20101 r-21010 p0100   r-10100 r+11011 p1100   r+01100 r+00011 p1101   r-21101 r+00010\n";
 
@@ -436,7 +430,7 @@ void setup2() {
   
 }
 
-void setup() {
+void setup2() {
   Serial.begin(115200);
 
   pinMode(LIMIT_PIN, INPUT_PULLUP);
@@ -451,16 +445,15 @@ void setup() {
   //commands = "p01110000 r+4-2-2-2 p00110000 r-2-2-2-2 p00010000 r-4-4-4+4 p01010000 r-3+6-3+6 p01000000 r+6-3+6+6 p11000000 r-6-6+4+4 p11010000 r+0+0-3+0\n";
 
   //UR1- DR0+ DL4+ UL2+ U0+ R0+ D2+ L4+ ALL6+ y2 U5- R1- D1+ L2+ ALL3+
-  //commands = "p01110000 r-5-2-2-2 p00110000 r-5-5+3+3 p00010000 r-2-2-2-1 p01010000 r-4-5-4-5 p01000000 r+5+6+5+5 p11000000 r-5-5-2-2 p11010000 r-1-1+1-1\n";
-  commands = "p01110000 r-3-4-4-4 p00110000 r+0+0+0+0 p00010000 r-3-3-3+0 p01010000 r+3-5+3-5 p01000000 r+2+2+2+2 p11000000 r+0+0+0+0 p11010000 r-2-2+2-2\n";
+  commands = "p01110000 r-5-2-2-2 p00110000 r-5-5+3+3 p00010000 r-2-2-2-1 p01010000 r-4-5-4-5 p01000000 r+5+6+5+5 p11000000 r-5-5-2-2 p11010000 r-1-1+1-1\n";
+  //commands = "p01110000 r-3-4-4-4 p00110000 r+0+0+0+0 p00010000 r-3-3-3+0 p01010000 r+3-5+3-5 p01000000 r+2+2+2+2 p11000000 r+0+0+0+0 p11010000 r-2-2+2-2\n";
   
-  Serial.println("speed: "+(String)ROTATION_SPEED);
   clockOperator.reset();  //needed only after optimizing pin settings
   delay(1500);
   
 }
 
-void loop2() {
+void loop() {
 
   unsigned long start_time = millis();
   //clockOperator.runCommand("p100100");s
@@ -474,46 +467,44 @@ void loop2() {
 
 }
 
-void loop(){
-  clockOperator.runCommand("p00000000");
+void loop2(){
+  //clockOperator.runCommand("p11110000");
+  //delay(1000);
   //clockOperator.runCommand("p00010000");
+  //delay(1000);
   //clockOperator.runCommand("p00100000");
-  /*clockOperator.runCommand("p00110000");
-  clockOperator.runCommand("p01000000");
-  clockOperator.runCommand("p01010000");
-  clockOperator.runCommand("p01100000");
-  clockOperator.runCommand("p01110000");
-  clockOperator.runCommand("p10000000");
-  clockOperator.runCommand("p10010000");
-  clockOperator.runCommand("p10100000");
-  clockOperator.runCommand("p10110000");
-  clockOperator.runCommand("p11000000");
-  clockOperator.runCommand("p11010000");
-  clockOperator.runCommand("p11110000");
-  delay(2000);
-  clockOperator.runCommand("p0101  ");
-  clockOperator.runCommand("r-50101");
-  clockOperator.runCommand("r+50101");
-  clockOperator.runCommand("r-10101");
-  clockOperator.runCommand("r+50101");
-  clockOperator.runCommand("r-10101");
-  clockOperator.runCommand("r-50101");
-  clockOperator.runCommand("r-30101");
-  clockOperator.runCommand("r+60101");
-  clockOperator.runCommand("r-20101");
-  clockOperator.runCommand("r+40101");
- clockOperator.runCommand("r+3+0+0+0");
- clockOperator.runCommand("r-2+0+0+0");
- clockOperator.runCommand("r+1+0+0+0");
- clockOperator.runCommand("r-5+0+0+0");
- clockOperator.runCommand("r+3+0+0+0");
- clockOperator.runCommand("r+6+0+0+0");
- clockOperator.runCommand("r+4+0+0+0");*/ 
- //long x = millis();
- //clockOperator.runCommand("r+0+0+0+6");
- //Serial.println(millis()-x);
- //clockOperator.runCommand("r +0+0+0-1");
- //clockOperator.runCommand("r+d0+0+0+5");
+  //clockOperator.runCommand("p00110000");
+  //clockOperator.runCommand("p01000000");
+  //clockOperator.runCommand("p01010000");
+  //clockOperator.runCommand("p01100000");
+  //clockOperator.runCommand("p01110000");
+  //clockOperator.runCommand("p10000000");
+  //clockOperator.runCommand("p10010000");
+  //clockOperator.runCommand("p10100000");
+  //clockOperator.runCommand("p10110000");
+  //clockOperator.runCommand("p11000000");
+  //clockOperator.runCommand("p11010000");
+  //clockOperator.runCommand("p11110000");
+  //delay(1000);
+  //clockOperator.runCommand("p00000000");
+  //delay(1000);ֹ
+
+  //clockOperator.runCommand("p10000000");
+  //delay(1000);
+  //clockOperator.runCommand("r+6+0+0+0");
+  //delay(1000);
+  //delay(1000);
+  clockOperator.runCommand("r+0+0+3+0");
+  clockOperator.runCommand("r+0+0-2+0");
+  clockOperator.runCommand("r+0+0+1+0");
+  clockOperator.runCommand("r+0+0-5+0");
+  clockOperator.runCommand("r+0+0+3+0");
+  clockOperator.runCommand("r+0+0+6+0");
+  clockOperator.runCommand("r+0+0+4+0");
+  clockOperator.runCommand("r+0+0+6+0");
+  clockOperator.runCommand("r+0+0-1+0");
+  clockOperator.runCommand("r+0+0+5+0");
+  delay(1000);
  
   //clockOperator.runCommand("p01010000");
   //clockOperator.runCommand("p00000000");
@@ -548,7 +539,7 @@ void loop(){
   //unsigned long x = millis();
   //clockOperator.clock.rotate(new float[4]{0,0,0,0});
   //delay(10);
-  //clockOperator.clock.rotate(new float[4]{0,0,0,-108});
+  //clockOperator.clock.rotate(new float[4]{108,0,0,0});
   //Serial.println(millis()-x);
   
   //clockOperator.clock.clockSteppers.moveTo(new long[4]{200,200,200,200});
@@ -560,6 +551,6 @@ void loop(){
   //Serial.println(millis()-x);
 
   //clockOperator.clock.test();
-  disablePins();
-  delay(5000);
+  //disablePins();
+  //delay(5000);
 }  

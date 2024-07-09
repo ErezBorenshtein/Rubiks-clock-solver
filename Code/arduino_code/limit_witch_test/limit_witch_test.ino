@@ -1,60 +1,42 @@
-#include <Servo.h>
+#define LIMIT_PIN 18
+#define MOTOR_ENABLE_PIN 19
 
-#define LIMIT_PIN 40
-#define MOTOR_ENABLE_PIN 41
-int lastEnableMode = 0;
+void powerEnabler(){
+  int mode;
+  digitalWrite(MOTOR_ENABLE_PIN, LOW);
+  do{
+
+    mode = digitalRead(LIMIT_PIN);
+
+  }while(mode==1);
+  digitalWrite(MOTOR_ENABLE_PIN, HIGH);
+
+  
+}
+
 void setup() {
-
-  //start serial connection
-  /*Serial.begin(9600);
-  delay (1000);
-  //configure pin 2 as an input and enable the internal pull-up resistor
+  // Initialize serial communication
+  Serial.begin(115200);
 
   pinMode(LIMIT_PIN, INPUT_PULLUP);
-
   pinMode(MOTOR_ENABLE_PIN, OUTPUT);
+
+  attachInterrupt(digitalPinToInterrupt(LIMIT_PIN), powerEnabler, CHANGE);
+  powerEnabler();
   
-  Serial.println("Setup...");
-  delay (1000);*/
-  pinMode(13, OUTPUT);
-
-}
-
-void waitUntilMotorEnabeld(){
-  while(lastEnableMode==0){
-    checkMotorEnable();
-    delay(10);
+  // Wait for serial port to open
+  while (!Serial) {
+    delay(10); // Wait for serial port to connect
   }
-}
-
-void checkMotorEnable(){
-  int sensorVal = digitalRead(LIMIT_PIN);
-  if (lastEnableMode != sensorVal)
-  {
-    Serial.println("new mode: " + String(sensorVal));
-    lastEnableMode = sensorVal;
-    delay (100);
-  }
-
-  if (sensorVal == HIGH) {
-    digitalWrite(MOTOR_ENABLE_PIN, LOW);
-
-  }
-
-  else {
-
-    digitalWrite(MOTOR_ENABLE_PIN, HIGH);
-    //resetFunc();  //call reset
-  }
-  
+  Serial.println("ready");
 }
 
 void loop() {
-  //checkMotorEnable();
-  digitalWrite(13,HIGH);
-  delay(1000);
-  digitalWrite(13,LOW);
-  delay(1000);
-
-  
+  if (Serial.available() > 0) {
+    // Read the incoming data
+    String inputString = Serial.readStringUntil('\n');
+    
+    // Print the received string
+    Serial.println("Received: " + inputString);
+  }
 }

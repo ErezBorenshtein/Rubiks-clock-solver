@@ -9,15 +9,15 @@ centers_buffer = BufferManager(15,9)
 max_thresh = 255
 
 top_min_threshold = 32
-bottom_min_threshold = 92
+bottom_min_threshold = 54
 
 kernel_rate = 1
 
 circle_param1 = 300
 circle_param2 = 20
 
-threshold1 = 42  
-threshold2 = 73
+threshold1 = 24
+threshold2 = 46
 
 def rad_to_deg(radians):
     return radians * (180 / np.pi)
@@ -291,6 +291,7 @@ def read_clock(camera) -> list[int]:
 def show_final_img(img):
     global circle_param1
     global bottom_min_threshold
+    global top_min_threshold
     global circle_param2
     global threshold1
     global threshold2
@@ -302,24 +303,31 @@ def show_final_img(img):
     if key == 27:  # ESC key to exit
         return False
     elif key == ord('1'):
-        circle_param1 = max(0, circle_param1 - 1)
-        print(circle_param1)
+        top_min_threshold -= 1
+        print("top_min_threshold= ",top_min_threshold)
     elif key == ord('2'):
-        circle_param1 = min(500, circle_param1 + 1)
-        print(circle_param1)
+        top_min_threshold +=1
+        print("top_min_threshold= ",top_min_threshold)
     elif key == ord('3'):
         threshold1 -=1
-        print(threshold1)
+        print("threshold1= ",threshold1)
     elif key == ord('4'):
         threshold1 +=1 
-        print(threshold1)
+        print("threshold1= ",threshold1)
     elif key == ord('5'):
         bottom_min_threshold -=1
-        print(bottom_min_threshold)
+        print("bottom_min_threshold= ",bottom_min_threshold)
     elif key == ord('6'):
         bottom_min_threshold +=1
-        print(bottom_min_threshold)
-    elif key == ord('a'):
+        print("bottom_min_threshold= ",bottom_min_threshold)
+    elif key == ord('7'):
+        threshold2 -=1
+        print("threshold2= ",threshold2)
+    elif key == ord('8'):
+        threshold2 +=1
+        print("threshold2= ",threshold2)
+
+    elif key == ord(' '):
         return True
 
 def find_available_cameras(max_index=10):

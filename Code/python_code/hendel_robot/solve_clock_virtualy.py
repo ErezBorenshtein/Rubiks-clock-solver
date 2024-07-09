@@ -213,7 +213,7 @@ class Clock:
         for i in range(len(final_movement)):
             final_movement_str+=final_movement[i]+","
 
-        print(final_movement_str)
+        #print(final_movement_str)
         #self.print_clock()
 
         return final_movement_str
@@ -319,7 +319,7 @@ class Clock:
                 self.clock_pins[pin] = flipped_pins[pin]
                 
         ret_val = f"p{self.clock_pins[0]}{self.clock_pins[1]}{self.clock_pins[2]}{self.clock_pins[3]}"
-        print(ret_val)
+        #print(ret_val)
         return ret_val
 
     def count_clocks_in_same_time(self):
