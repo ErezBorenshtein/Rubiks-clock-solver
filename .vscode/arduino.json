@@ -1,5 +1,6 @@
 {
-    "sketch": "Code\\arduino_code\\motors_test\\motors_test.ino",
-    "board": "arduino:avr:uno",
-    "port": "COM6"
+    "sketch": "Code\\arduino_code\\optimaized_code\\optimaized_code.ino",
+    "board": "arduino:avr:mega",
+    "port": "COM6",
+    "configuration": "cpu=atmega2560"
 }

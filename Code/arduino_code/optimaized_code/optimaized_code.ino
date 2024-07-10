@@ -1,22 +1,12 @@
-#include <AccelStepper.h>
-#include <MultiStepper.h>
-
 #define LIMIT_PIN 18
 #define MOTOR_ENABLE_PIN 19
 
-//with cnc shield
-//#define ROTATION_SPEED 3550
-//#define ROTATION_DELAY 4
-
-//with TB6600 drivers
-//#define ROTATION_SPEED 13000 //max possible speed
-#define ROTATION_SPEED 4000
 //#define ROTATION_DELAY 30 for testing without pins
 #define ROTATION_DELAY 0
-#define MIN_PULSE_WIDTH 3
 
 #define PUSHER_DELAY 25
 
+#define TIMER_PIN 8
 
 volatile const int stepPul[4] = {48, 46, 44, 42};
 volatile const int stepDir[4] = {49, 47, 45, 43};
@@ -165,52 +155,10 @@ class Clock{
     //const int stepsPerRotation = (400*(9.9/18.15))*2; // 400 is the number of steps per rotation, 12/22 is the gear ratio, 8 is the microstepping
     //int offset[4] = {0,0,0,0}; //gear ratio offset for each wheel
     
-
-    AccelStepper* stepperUR;
-    AccelStepper* stepperDR;
-    AccelStepper* stepperDL;
-    AccelStepper* stepperUL;
-
-    MultiStepper multiSteppers;
-
     Solenoids solenoids;
 
     ClockSteppers clockSteppers;
 
-    AccelStepper* steppers[4];
-
-    Clock(){      
-      //with 1.8 deg per step with 1/16 resolution(1 jumpers)
-      //stepsPerHour =200;
-
-      //with cnc shield
-      //steppers[0] = (stepperUR = new AccelStepper(1, 2, 5));
-      //steppers[1] = (stepperDR = new AccelStepper(1, 3, 6));
-      //steppers[2] = (stepperDL = new AccelStepper(1, 4, 7));
-      //steppers[3] = (stepperUL = new AccelStepper(1, 12, 13));
-
-      //with TB6600 drivers
-      /*steppers[0] = (stepperUR = new AccelStepper(1, 48, 49));
-      steppers[1] = (stepperDR = new AccelStepper(1, 46, 47));
-      steppers[2] = (stepperDL = new AccelStepper(1, 44, 45));
-      steppers[3] = (stepperUL = new AccelStepper(1, 42, 43));*/
-      
-
-      /*for(int i=0;i<4;i++){
-        AccelStepper* stepper = steppers[i];
-
-        multiSteppers.addStepper(*stepper);
-
-        //int spd = 1000;
-        int spd = ROTATION_SPEED;
-        stepper->setMaxSpeed(spd); // Set maximum speed value for the stepper
-        stepper->setAcceleration(100000); // Set acceleration value for the stepper
-        stepper->setCurrentPosition(0); // Set the current position to 0 steps
-        stepper->setMinPulseWidth(MIN_PULSE_WIDTH);
-        //stepper->setSpeed(spd);
-      }*/
-
-    }
     
     void setPins(int stateUR, int stateDR, int stateDL, int stateUL){
       solenoids.set(stateUR, stateDR, stateDL, stateUL);
@@ -228,12 +176,6 @@ class Clock{
       }
 
       clockSteppers.moveTo(steps);
-
-      /*multiSteppers.moveTo(steps);
-      
-      while(multiSteppers.run()){
-        //delayMicroseconds(25);
-      }*/
 
     }
 
@@ -329,7 +271,7 @@ class ClockOperator{
 
     void runCommand(String command){
 
-      Serial.println("running command: "+command);
+      //Serial.println("running command: "+command);
 
       if(!isCommandValid(command)){
         Serial.println("command is not valid");
@@ -403,6 +345,9 @@ void setup() {
   pinMode(LIMIT_PIN, INPUT_PULLUP);
   pinMode(MOTOR_ENABLE_PIN, OUTPUT);
   
+  pinMode(TIMER_PIN, OUTPUT);
+  digitalWrite(TIMER_PIN, LOW);
+  
   attachInterrupt(digitalPinToInterrupt(LIMIT_PIN), powerEnabler, CHANGE);
   powerEnabler();
 
@@ -430,7 +375,7 @@ void setup() {
   
 }
 
-void setup2() {
+void setup() {
   Serial.begin(115200);
 
   pinMode(LIMIT_PIN, INPUT_PULLUP);
@@ -453,21 +398,23 @@ void setup2() {
   
 }
 
-void loop() {
+void loop2() {
 
   unsigned long start_time = millis();
-  //clockOperator.runCommand("p100100");s
-  //clockOperator.runCommand("r-21001");
-  //Serial.println("commands: "+commands);
+
+  digitalWrite(TIMER_PIN, HIGH);
+
   clockOperator.solve(commands);
-  //Serial.println("here");
+
+  digitalWrite(TIMER_PIN, LOW);
+
   Serial.println("total time: "+String(millis()- start_time));
   clockOperator.reset();
   delay(1000000);
 
 }
 
-void loop2(){
+void loop(){
   //clockOperator.runCommand("p11110000");
   //delay(1000);
   //clockOperator.runCommand("p00010000");

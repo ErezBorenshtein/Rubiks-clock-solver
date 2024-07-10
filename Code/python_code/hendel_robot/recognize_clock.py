@@ -3,6 +3,9 @@ import numpy as np
 
 from clock_buffer import BufferManager
 
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+
 buffer = BufferManager(10,9)
 centers_buffer = BufferManager(15,9)
 
@@ -160,7 +163,7 @@ def extract_circle_image(img_grayscale, kernel_rate):
 def contains_none(arrays):
     return any(any(cell is None for cell in row) for row in arrays)
 
-def read_clock(camera) -> list[int]:
+def read_clock(camera,color) -> list[int]:
     font = cv2.FONT_HERSHEY_SIMPLEX
     img2 = 0
 
@@ -214,7 +217,7 @@ def read_clock(camera) -> list[int]:
                 # Displaying Circle Around Clock
                 cv2.circle(img, centre, maxrad, (20, 90, 230), 2)
                 cv2.circle(img, centre, 2, (0, 0, 255), 3)
-            show_final_img(img)
+            show_final_img(img,color)
 
         if (len(circles) != 9):
             continue
@@ -284,17 +287,34 @@ def read_clock(camera) -> list[int]:
             cv2.circle(img, centre, maxrad, (20, 90, 230), 2)
             cv2.circle(img, centre, 2, (0, 0, 255), 3)
         
-        if show_final_img(img):
+        if show_final_img(img,color):
             return hours
     
 
-def show_final_img(img):
+def show_final_img(img,color =(0,0,0)):
     global circle_param1
     global bottom_min_threshold
     global top_min_threshold
     global circle_param2
     global threshold1
     global threshold2
+
+    # Define the position and size of the circles
+    height, width = img.shape[:2]
+    outer_circle_radius = 22  # Slightly larger radius for the white border
+    inner_circle_radius = 20  # Radius for the black circle
+    circle_position = (width - outer_circle_radius - 10, height - outer_circle_radius - 10)  # Bottom right position
+
+    # Draw the white outer circle
+    cv2.circle(img, circle_position, outer_circle_radius, (255, 255, 255), -1)
+
+    # Draw the black inner circle
+    cv2.circle(img, circle_position, inner_circle_radius, color, -1)
+
+    # Add the text above the circle and slightly to the left
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    text_position = (circle_position[0] - 350, circle_position[1] + 5)  # Adjust the text position as needed
+    cv2.putText(img, 'The color of the top side is:', text_position, font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
     
 
     cv2.imshow('Final', img)
@@ -366,8 +386,8 @@ def apply_threshold(img):
 def main():
     centers_buffer.prepare_positions(20,9)
     camera = cv2.VideoCapture(0)
-    hour1 = read_clock(camera)
-    hour2 = read_clock(camera)
+    hour1 = read_clock(camera,WHITE)
+    hour2 = read_clock(camera,BLACK)
     cv2.destroyAllWindows()
     
     print("hour1: ",hour1)

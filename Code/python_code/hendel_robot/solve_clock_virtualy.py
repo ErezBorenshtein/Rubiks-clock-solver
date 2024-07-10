@@ -142,9 +142,10 @@ class Clock:
         #set the clock to a specific configuration(if the state is valid)
         for i in [(0,11),(2,9),(6,17),(8,15)]:
             if clock[i[0]] != (12-clock[i[1]])%12:
-                raise Exception("Invalid clock configuration, clock corners in both sides must be the same")
+                return False
             else:
                 self.clock = clock
+                return True
 
     def reset(self):
         # Reset the clock to its initial state
