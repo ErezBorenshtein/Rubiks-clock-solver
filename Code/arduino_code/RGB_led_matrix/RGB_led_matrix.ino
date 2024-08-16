@@ -38,6 +38,8 @@ const int defaultBrightness = (100*255)/100;      // full (100%) brightness
 
 volatile unsigned long startTime = 0;
 
+volatile bool resetTimer = false;
+
 volatile bool runTimer = false;
 
 int offsetX = 28;
@@ -50,6 +52,9 @@ void timer(){
     startTime = millis();
   }
   else{
+    if(millis()-startTime < 100){
+      resetTimer = true;
+    }
     runTimer = false;
   }
 }
@@ -81,8 +86,19 @@ void setup() {
 long totalTime = 0;
 
 void loop() {
+  //Serial.println(digitalRead(INTERRUPT_PIN));
+
+  if(resetTimer){
+    Serial.println("reset");
+    indexedLayer.fillScreen(0);
+    indexedLayer.drawString(kMatrixWidth/2-offsetX, kMatrixHeight/2-offsetY , 0, "0.000");
+    indexedLayer.swapBuffers(false);
+    resetTimer = false;
+  } 
 
   if(runTimer){
+    Serial.println("here");
+
     totalTime = (millis() - startTime);
     float tmp2 = ((float)totalTime) / 1000;
     String value = String(tmp2, 3);

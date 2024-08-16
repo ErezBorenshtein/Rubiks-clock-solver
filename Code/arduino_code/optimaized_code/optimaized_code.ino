@@ -1,10 +1,11 @@
 #define LIMIT_PIN 18
 #define MOTOR_ENABLE_PIN 19
 
-//#define ROTATION_DELAY 30 for testing without pins
-#define ROTATION_DELAY 0
+//#define ROTATION_DELAY 35 //!for testing without pins
+#define ROTATION_DELAY 5
 
-#define PUSHER_DELAY 25
+//#define PUSHER_DELAY 25
+#define PUSHER_DELAY 35
 
 #define TIMER_PIN 8
 
@@ -287,7 +288,7 @@ class ClockOperator{
         setPins(command);
       }
 
-      //delay(5000);
+      //delay(500);
       
     }
 
@@ -346,6 +347,11 @@ void setup() {
   pinMode(MOTOR_ENABLE_PIN, OUTPUT);
   
   pinMode(TIMER_PIN, OUTPUT);
+
+  digitalWrite(TIMER_PIN, LOW);
+  delay(10);
+  digitalWrite(TIMER_PIN, HIGH);
+  //delay(10);
   digitalWrite(TIMER_PIN, LOW);
   
   attachInterrupt(digitalPinToInterrupt(LIMIT_PIN), powerEnabler, CHANGE);
@@ -371,16 +377,19 @@ void setup() {
 
   Serial.println("end of read");
   //clockOperator.reset();  //needed only after optimizing pin settings
+
   delay(1000);
   
 }
 
-void setup() {
+void setup2() {
   Serial.begin(115200);
 
   pinMode(LIMIT_PIN, INPUT_PULLUP);
   pinMode(MOTOR_ENABLE_PIN, OUTPUT);
   
+  pinMode(TIMER_PIN, OUTPUT);
+  digitalWrite(TIMER_PIN, LOW);
   
   attachInterrupt(digitalPinToInterrupt(LIMIT_PIN), powerEnabler, CHANGE);
   powerEnabler();
@@ -398,7 +407,7 @@ void setup() {
   
 }
 
-void loop2() {
+void loop() {
 
   unsigned long start_time = millis();
 
@@ -414,11 +423,10 @@ void loop2() {
 
 }
 
-void loop(){
+void loop2(){
   //clockOperator.runCommand("p11110000");
   //delay(1000);
   //clockOperator.runCommand("p00010000");
-  //delay(1000);
   //clockOperator.runCommand("p00100000");
   //clockOperator.runCommand("p00110000");
   //clockOperator.runCommand("p01000000");
@@ -433,24 +441,27 @@ void loop(){
   //clockOperator.runCommand("p11010000");
   //clockOperator.runCommand("p11110000");
   //delay(1000);
-  //clockOperator.runCommand("p00000000");
-  //delay(1000);ֹ
-
+  clockOperator.runCommand("p00000000");
+  delay(1000);
+  clockOperator.runCommand("p11110000");
+  delay(1000);
   //clockOperator.runCommand("p10000000");
   //delay(1000);
   //clockOperator.runCommand("r+6+0+0+0");
   //delay(1000);
   //delay(1000);
-  clockOperator.runCommand("r+0+0+3+0");
-  clockOperator.runCommand("r+0+0-2+0");
-  clockOperator.runCommand("r+0+0+1+0");
-  clockOperator.runCommand("r+0+0-5+0");
-  clockOperator.runCommand("r+0+0+3+0");
-  clockOperator.runCommand("r+0+0+6+0");
-  clockOperator.runCommand("r+0+0+4+0");
-  clockOperator.runCommand("r+0+0+6+0");
-  clockOperator.runCommand("r+0+0-1+0");
-  clockOperator.runCommand("r+0+0+5+0");
+  //clockOperator.runCommand("r+0+3+0+0");
+  //clockOperator.runCommand("r+0-2+0+0");
+  //clockOperator.runCommand("r+0+1+0+0");
+  //clockOperator.runCommand("r+0-5+0+0");
+  //clockOperator.runCommand("r+0+3+0+0");
+  //clockOperator.runCommand("r+0+6+0+0");
+  //clockOperator.runCommand("r+0+4+0+0");
+  //clockOperator.runCommand("r+0+6+0+0");
+  //clockOperator.runCommand("r+0-1+0+0");
+  //clockOperator.runCommand("r+0+5+0+0");
+  //clockOperator.runCommand("r+0+4+0+0");
+  //
   delay(1000);
  
   //clockOperator.runCommand("p01010000");

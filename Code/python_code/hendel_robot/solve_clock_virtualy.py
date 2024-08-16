@@ -508,6 +508,7 @@ class Clock:
             sublist = splited_commands[i:i+3]  # Get the next 3 elements
             sliced_commands.append(sublist)
         
+        #proccess the commands
         for chank in sliced_commands:
             optimized_commands.append(chank[0]+"00")
             rotate = "r"+ ''.join(chank[1][1:3] if wheel == "1" else "_" for wheel in chank[1][3:])
@@ -515,6 +516,12 @@ class Clock:
             rotate = rotate.replace("_",chank[2][1:3])
             
             optimized_commands.append(rotate)
+        
+        #remove the moves that don't do anything and the pin's setup before them
+        while "r+0+0+0+0" in optimized_commands:
+            index = optimized_commands.index("r+0+0+0+0")
+            optimized_commands.pop(index)
+            optimized_commands.pop(index-1)
         
         return " ".join(optimized_commands)
 
