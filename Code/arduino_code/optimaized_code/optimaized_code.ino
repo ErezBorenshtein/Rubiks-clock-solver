@@ -7,7 +7,7 @@
 //#define PUSHER_DELAY 25
 #define PUSHER_DELAY 35
 
-#define TIMER_PIN 8
+#define TIMER_PIN 14
 
 volatile const int stepPul[4] = {48, 46, 44, 42};
 volatile const int stepDir[4] = {49, 47, 45, 43};
@@ -338,15 +338,48 @@ void powerEnabler(){
   
 }
 
-
-void setup() {
+void setup2() {
   Serial.begin(115200);
+  Serial3.begin(115200);
 
+  delay(50);
+
+  Serial3.println("reset");
 
   pinMode(LIMIT_PIN, INPUT_PULLUP);
   pinMode(MOTOR_ENABLE_PIN, OUTPUT);
   
-  pinMode(TIMER_PIN, OUTPUT);
+  //pinMode(TIMER_PIN, OUTPUT);
+  digitalWrite(TIMER_PIN, LOW);
+  
+  attachInterrupt(digitalPinToInterrupt(LIMIT_PIN), powerEnabler, CHANGE);
+  powerEnabler();
+  //UR1+ DR4- DL2- UL2- U3- R1+ D1- L3+ ALL5- y2 U2- R2+ D1+ L5- ALL0+
+  //commands = "p01110000 r-2-2-2-2 p00110000 r-3-3-3-3 p00010000 r-3-3-3+4 p01010000 r+6+1+6+1 p01000000 r-4-5-4-4 p11000000 r-5-5+1+1 p11010000 r-2-2+1-2\n";
+  //UR2+ DR4- DL5- UL1- U5- R1- D0+ L4+ ALL1+ y2 U4+ R1+ D3- L2+ ALL2-
+  //commands = "p01110000 r+4-2-2-2 p00110000 r-2-2-2-2 p00010000 r-4-4-4+4 p01010000 r-3+6-3+6 p01000000 r+6-3+6+6 p11000000 r-6-6+4+4 p11010000 r+0+0-3+0\n";
+
+  //UR1- DR0+ DL4+ UL2+ U0+ R0+ D2+ L4+ ALL6+ y2 U5- R1- D1+ L2+ ALL3+
+  commands = "p01110000 r-5-2-2-2 p00110000 r-5-5+3+3 p00010000 r-2-2-2-1 p01010000 r-4-5-4-5 p01000000 r+5+6+5+5 p11000000 r-5-5-2-2 p11010000 r-1-1+1-1\n";
+  //commands = "p01110000 r-3-4-4-4 p00110000 r+0+0+0+0 p00010000 r-3-3-3+0 p01010000 r+3-5+3-5 p01000000 r+2+2+2+2 p11000000 r+0+0+0+0 p11010000 r-2-2+2-2\n";
+  
+  clockOperator.reset();  //needed only after optimizing pin settings
+  delay(1500);
+  
+}
+
+void setup() {
+  Serial.begin(115200);
+  Serial3.begin(115200);
+
+  delay(50);
+  
+  Serial3.println("reset");
+
+  pinMode(LIMIT_PIN, INPUT_PULLUP);
+  pinMode(MOTOR_ENABLE_PIN, OUTPUT);
+  //pinMode(TIMER_PIN, OUTPUT);
+  
 
   digitalWrite(TIMER_PIN, LOW);
   delay(10);
@@ -382,46 +415,35 @@ void setup() {
   
 }
 
-void setup2() {
-  Serial.begin(115200);
-
-  pinMode(LIMIT_PIN, INPUT_PULLUP);
-  pinMode(MOTOR_ENABLE_PIN, OUTPUT);
-  
-  pinMode(TIMER_PIN, OUTPUT);
-  digitalWrite(TIMER_PIN, LOW);
-  
-  attachInterrupt(digitalPinToInterrupt(LIMIT_PIN), powerEnabler, CHANGE);
-  powerEnabler();
-  //UR1+ DR4- DL2- UL2- U3- R1+ D1- L3+ ALL5- y2 U2- R2+ D1+ L5- ALL0+
-  //commands = "p01110000 r-2-2-2-2 p00110000 r-3-3-3-3 p00010000 r-3-3-3+4 p01010000 r+6+1+6+1 p01000000 r-4-5-4-4 p11000000 r-5-5+1+1 p11010000 r-2-2+1-2\n";
-  //UR2+ DR4- DL5- UL1- U5- R1- D0+ L4+ ALL1+ y2 U4+ R1+ D3- L2+ ALL2-
-  //commands = "p01110000 r+4-2-2-2 p00110000 r-2-2-2-2 p00010000 r-4-4-4+4 p01010000 r-3+6-3+6 p01000000 r+6-3+6+6 p11000000 r-6-6+4+4 p11010000 r+0+0-3+0\n";
-
-  //UR1- DR0+ DL4+ UL2+ U0+ R0+ D2+ L4+ ALL6+ y2 U5- R1- D1+ L2+ ALL3+
-  commands = "p01110000 r-5-2-2-2 p00110000 r-5-5+3+3 p00010000 r-2-2-2-1 p01010000 r-4-5-4-5 p01000000 r+5+6+5+5 p11000000 r-5-5-2-2 p11010000 r-1-1+1-1\n";
-  //commands = "p01110000 r-3-4-4-4 p00110000 r+0+0+0+0 p00010000 r-3-3-3+0 p01010000 r+3-5+3-5 p01000000 r+2+2+2+2 p11000000 r+0+0+0+0 p11010000 r-2-2+2-2\n";
-  
-  clockOperator.reset();  //needed only after optimizing pin settings
-  delay(1500);
-  
-}
-
 void loop() {
+  //Serial.println((String)"mil 0: "+(String)millis());
 
-  unsigned long start_time = millis();
+  if(Serial.available()){
+    //Serial.println((String)"mil 1: "+(String)millis());
+    //String command = Serial.readStringUntil("\n");
+    ////Serial.println(command);
+    //Serial.println((String)"mil 2: "+(String)millis());
+    //if(command=="start\n"){
+      
+      unsigned long start_time = millis();
 
-  digitalWrite(TIMER_PIN, HIGH);
+      Serial3.println("start");
+      Serial.println("------start");
 
-  clockOperator.solve(commands);
+      clockOperator.solve(commands);
 
-  digitalWrite(TIMER_PIN, LOW);
+      Serial3.println("stop");
+      Serial.println("done");
 
-  Serial.println("total time: "+String(millis()- start_time));
-  clockOperator.reset();
-  delay(1000000);
-
+      Serial.println("total time: "+String(millis()- start_time));
+      clockOperator.reset();
+      delay(1000000);
+    //}
+  }
+  delay(3);
 }
+
+
 
 void loop2(){
   //clockOperator.runCommand("p11110000");

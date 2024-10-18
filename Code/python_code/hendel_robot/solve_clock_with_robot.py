@@ -2,10 +2,23 @@ import serial
 import time
 from solve_clock_virtualy import Clock
 from recognize_clock  import * 
-import cv2
+import winsound
+import threading
+import keyboard
 
 BLACK = (0,0,0)
 WHITE = (255,255,255)
+
+
+def beep():
+    frequency = 1000  # Frequency of the beep sound in Hertz
+    duration = 500    # Duration of the beep in milliseconds (500 ms = 0.5 seconds)
+    winsound.Beep(frequency, duration)
+
+def beep_in_thread():
+    beep_thread = threading.Thread(target=beep)
+    beep_thread.start()
+
     
 def solve_without_camera():
     clock = Clock()
@@ -19,27 +32,32 @@ def solve_without_camera():
     #                1,2,5,
     #                10,7,2])
     #clock.print_clock()
-    scramble = "UR1+ DR4- DL2- UL2- U3- R1+ D1- L3+ ALL5- y2 U2- R2+ D1+ L5- ALL0+"
+    scramble = "UR0+ DR2- DL3+ UL4- U2+ R5- D4+ L1- ALL3+ y2 U1+ R3- D0+ L1+ ALL1+"
     clock.scramble(scramble)
     solution = clock.solve_clock_7_simul()
     commands = clock.prepare_commands(solution)+"\n"
+    commands = clock.optimize_commnds_7_simul(commands)+" \n"
     #commands = "p011100 r+01000 r-10111 p001100 r+01100 r+10011 p000100 r-10001 r+11110 p010100 r+10101 r-11010 p010000 r+00100 r+01011 p110000 r+01100 r+00011 p110100 r-11101 r+00010\n"
     print(commands)
-    ser = serial.Serial("COM4",9600)
+    ser = serial.Serial("COM4",115200)
     #time.sleep(3)
     x = ser.readline().decode().strip()
     print(x)
     while(x != "ready"):
         x = ser.readline().decode().strip()
         print(x)
+
+    
     print("Arduino is ready to receive data.")
     ser.write(commands.encode())
     ser.flush()
     print("Data sent over serial successfully.")
 
+    ser.write("start\n".encode())
+
     while True:
         try:
-            data = ser.readline().decode().strip()
+            data = ser.readline().decode().strip() 
             print(data)
         finally:
             time.sleep(0.01)
@@ -48,7 +66,7 @@ def solve_without_camera():
 
 
 def solve_with_camera():
-    """print("Solving clock with camera")
+    print("Solving clock with camera")
     centers_buffer.prepare_positions(20,9)
 
     camera = cv2.VideoCapture(0)
@@ -72,8 +90,8 @@ def solve_with_camera():
     commands = clock.solve_clock_7_simul()
     commands = clock.prepare_commands(commands)
     commands = clock.optimize_commnds_7_simul(commands)+" \n"
-    """
-    commands = "p01110000 r-5-2-2-2 p00110000 r-5-5+3+3 p00010000 r-2-2-2-1 p01010000 r-4-5-4-5 p01000000 r+5+6+5+5 p11000000 r-5-5-2-2 p11010000 r-1-1+1-1\n"
+    
+    #commands = "p01110000 r-5-2-2-2 p00110000 r-5-5+3+3 p00010000 r-2-2-2-1 p01010000 r-4-5-4-5 p01000000 r+5+6+5+5 p11000000 r-5-5-2-2 p11010000 r-1-1+1-1\n"
     ser = serial.Serial("COM4",115200)
     time.sleep(3)
     
@@ -88,12 +106,26 @@ def solve_with_camera():
     ser.flush()
     print("Data sent over serial successfully.")
 
-    while True:
+    space_was_pressed = False
+
+    while True:   
+        if keyboard.is_pressed("space") and not space_was_pressed:    
+            beep_in_thread()
+            ser.write("start\n".encode())
+            print("Start signal sent to arduino")
+            #break
+            space_was_pressed = True
+
         try:
-            data = ser.readline().decode().strip()
-            print(data)
+            if ser.in_waiting > 0:
+                data = ser.readline().decode().strip()
+                print(data)
+                if data == "done":
+                    beep_in_thread()
+                    break
         finally:
-            time.sleep(0.01)
+            time.sleep(0.001)
+
 
 
 if __name__ == "__main__":
