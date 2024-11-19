@@ -1,11 +1,12 @@
 #define LIMIT_PIN 18
 #define MOTOR_ENABLE_PIN 19
 
-//#define ROTATION_DELAY 35 //!for testing without pins
-#define ROTATION_DELAY 5
+#define ROTATION_DELAY 35 //!for testing without pins
+//#define ROTATION_DELAY 5
 
 //#define PUSHER_DELAY 25
-#define PUSHER_DELAY 35
+//#define PUSHER_DELAY 35 
+#define PUSHER_DELAY 70 //for testing
 
 #define TIMER_PIN 14
 
@@ -82,7 +83,8 @@ class Solenoids{
 
 class ClockSteppers{
   public:
-    const int speed = 700;
+    //const int speed = 700;
+    int speed = 700;
     const long turnSteps = 400 * 2;
     
     long currentPositions[4] = {0,0,0,0};
@@ -338,7 +340,7 @@ void powerEnabler(){
   
 }
 
-void setup2() {
+void setup() {
   Serial.begin(115200);
   Serial3.begin(115200);
 
@@ -363,12 +365,12 @@ void setup2() {
   commands = "p01110000 r-5-2-2-2 p00110000 r-5-5+3+3 p00010000 r-2-2-2-1 p01010000 r-4-5-4-5 p01000000 r+5+6+5+5 p11000000 r-5-5-2-2 p11010000 r-1-1+1-1\n";
   //commands = "p01110000 r-3-4-4-4 p00110000 r+0+0+0+0 p00010000 r-3-3-3+0 p01010000 r+3-5+3-5 p01000000 r+2+2+2+2 p11000000 r+0+0+0+0 p11010000 r-2-2+2-2\n";
   
-  clockOperator.reset();  //needed only after optimizing pin settings
+  //clockOperator.reset();  //needed only after optimizing pin settings
   delay(1500);
   
 }
 
-void setup() {
+void setup2() {
   Serial.begin(115200);
   Serial3.begin(115200);
 
@@ -415,7 +417,7 @@ void setup() {
   
 }
 
-void loop() {
+void loop2() {
   //Serial.println((String)"mil 0: "+(String)millis());
 
   if(Serial.available()){
@@ -445,7 +447,41 @@ void loop() {
 
 
 
-void loop2(){
+void loop(){
+
+  clockOperator.clock.clockSteppers.speed = 50;
+
+  clockOperator.runCommand("r+1+1+1+1");
+  clockOperator.runCommand("r+3+3+3+3");
+  clockOperator.runCommand("r-6-6-6-6");
+  clockOperator.runCommand("p00010000");
+  clockOperator.runCommand("r-3-3-3+6");
+  clockOperator.runCommand("r+4+4+4-2");
+  clockOperator.runCommand("r+4+4+4-2");
+  clockOperator.runCommand("r-4-4-4+2");
+  clockOperator.runCommand("r-1-1-1+3");
+  clockOperator.runCommand("p01010000");
+  clockOperator.runCommand("r-1+3-1+3");
+  clockOperator.runCommand("r+6-3+6-3");
+  clockOperator.runCommand("r+6-1+6-1");
+  clockOperator.runCommand("r+1-1+1-1");
+  clockOperator.runCommand("r+6-6+6-6");
+  clockOperator.runCommand("p01110000");
+  clockOperator.runCommand("r+1-1-1-1");
+  clockOperator.runCommand("r+6-6-6-6");
+  clockOperator.runCommand("r-6+6+6+6");
+  clockOperator.runCommand("r-1-6-6-6");
+  clockOperator.runCommand("r-3-5-5-5");
+  clockOperator.runCommand("p11110000");
+  clockOperator.runCommand("r-5-5-5-5");
+  clockOperator.runCommand("r+1+1+1+1");
+  clockOperator.runCommand("r-2-2-2-2");
+  clockOperator.runCommand("r+6+6+6+6");
+
+
+
+
+
   //clockOperator.runCommand("p11110000");
   //delay(1000);
   //clockOperator.runCommand("p00010000");
@@ -463,10 +499,10 @@ void loop2(){
   //clockOperator.runCommand("p11010000");
   //clockOperator.runCommand("p11110000");
   //delay(1000);
-  clockOperator.runCommand("p00000000");
-  delay(1000);
-  clockOperator.runCommand("p11110000");
-  delay(1000);
+  //clockOperator.runCommand("p00000000");
+  //delay(1000);
+  //clockOperator.runCommand("p11110000");
+  //delay(1000);
   //clockOperator.runCommand("p10000000");
   //delay(1000);
   //clockOperator.runCommand("r+6+0+0+0");
@@ -483,8 +519,32 @@ void loop2(){
   //clockOperator.runCommand("r+0-1+0+0");
   //clockOperator.runCommand("r+0+5+0+0");
   //clockOperator.runCommand("r+0+4+0+0");
-  //
-  delay(1000);
+
+
+  
+  
+  //clockOperator.runCommand("r+1+3+3+1");
+  //clockOperator.runCommand("r+4+6+6+6");
+  //clockOperator.runCommand("r+2+5+5+2");
+  //clockOperator.runCommand("r+0+6+6+0");
+  //clockOperator.runCommand("r+3+4+4+3");
+  //clockOperator.runCommand("r+1+0+0+1");
+  //clockOperator.runCommand("r+5+3+3+5");
+  //clockOperator.runCommand("r+2+6+6+2");
+  //clockOperator.runCommand("r+4+1+1+4");
+  //clockOperator.runCommand("r+3+0+0+3");
+  //clockOperator.runCommand("r+6+2+2+6");
+  //clockOperator.runCommand("r+1+5+5+1");
+  //clockOperator.runCommand("r+0+4+4+0");
+  //clockOperator.runCommand("r+2+3+3+2");
+  //clockOperator.runCommand("r+6+1+1+6");
+  //clockOperator.runCommand("r+4+0+0+4");
+  //clockOperator.runCommand("r+5+2+2+5");
+  //clockOperator.runCommand("r+3+6+6+3");
+  //clockOperator.runCommand("r+0+1+1+0");
+  //clockOperator.runCommand("r+2+4+4+2");
+
+  delay(1000000);
  
   //clockOperator.runCommand("p01010000");
   //clockOperator.runCommand("p00000000");
