@@ -109,8 +109,10 @@ def solve_with_camera():
     space_was_pressed = False
 
     while True:   
-        if keyboard.is_pressed("space") and not space_was_pressed:    
+        if keyboard.is_pressed("space") and not space_was_pressed:
+
             beep_in_thread()
+            
             ser.write("start\n".encode())
             print("Start signal sent to arduino")
             #break
