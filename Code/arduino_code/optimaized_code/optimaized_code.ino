@@ -2,10 +2,10 @@
 #define MOTOR_ENABLE_PIN 19
 
 #define ROTATION_DELAY 35 //!for testing without pins
-//#define ROTATION_DELAY 5
+//#define ROTATION_DELAY 5  //full operation time
 
 //#define PUSHER_DELAY 25
-//#define PUSHER_DELAY 35 
+//#define PUSHER_DELAY 35 //for full operation time
 #define PUSHER_DELAY 70 //for testing
 
 #define TIMER_PIN 14
@@ -340,6 +340,7 @@ void powerEnabler(){
   
 }
 
+//this is the setup for testing the robot
 void setup() {
   Serial.begin(115200);
   Serial3.begin(115200);
@@ -370,6 +371,8 @@ void setup() {
   
 }
 
+
+//this is the full operational 
 void setup2() {
   Serial.begin(115200);
   Serial3.begin(115200);
@@ -417,6 +420,8 @@ void setup2() {
   
 }
 
+
+//this is the real setup function that is used in the loop
 void loop2() {
   //Serial.println((String)"mil 0: "+(String)millis());
 
