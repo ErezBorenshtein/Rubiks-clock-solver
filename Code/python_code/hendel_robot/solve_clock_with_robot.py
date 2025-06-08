@@ -2,9 +2,9 @@ import serial
 import time
 from solve_clock_virtualy import Clock
 from recognize_clock  import * 
-import winsound
+# import winsound
 import threading
-import keyboard
+#import keyboard
 
 BLACK = (0,0,0)
 WHITE = (255,255,255)
@@ -13,7 +13,7 @@ WHITE = (255,255,255)
 def beep():
     frequency = 1000  # Frequency of the beep sound in Hertz
     duration = 500    # Duration of the beep in milliseconds (500 ms = 0.5 seconds)
-    winsound.Beep(frequency, duration)
+    # winsound.Beep(frequency, duration)
 
 def beep_in_thread():
     beep_thread = threading.Thread(target=beep)
@@ -66,6 +66,13 @@ def solve_without_camera():
 
 
 def solve_with_camera():
+
+    ser = None
+    try:
+        ser = serial.Serial("COM4",115200, timeout=1)   #windows
+    except:
+        ser = serial.Serial("/dev/ttyUSB0",115200, timeout=1)   #linux
+            
     print("Solving clock with camera")
     centers_buffer.prepare_positions(20,9)
 
@@ -91,42 +98,68 @@ def solve_with_camera():
     commands = clock.prepare_commands(commands)
     commands = clock.optimize_commnds_7_simul(commands)+" \n"
     
-    #commands = "p01110000 r-5-2-2-2 p00110000 r-5-5+3+3 p00010000 r-2-2-2-1 p01010000 r-4-5-4-5 p01000000 r+5+6+5+5 p11000000 r-5-5-2-2 p11010000 r-1-1+1-1\n"
-    ser = serial.Serial("COM4",115200)
-    time.sleep(3)
+                 
+    #commands = "'p01110000 r-3+3+3+3 p00110000 r+5+5-1-1 p00010000 r-2-2-2+0 p01010000 r+0-5+0-5 p01000000 r+6+2+6+6 p11000000 r-1-1-1-1 p11010000 r+6+6-4+6 \n'"
+    
+    #commands = "p01110000 r-5-2-2-2 p00110000 r-5-5+3+3 p00010000 r-2-2-2-1 p01010000 p10100000 p01010000\n"
+
+
+    time.sleep(1)
     
     data = ""
 
     while(data != "ready"):
         data = ser.readline().decode().strip()
-        print(data)
+        if data != "":
+            print(data)
 
     print("Arduino is ready to receive data.")
-    ser.write(commands.encode())
+    # ser.write(commands.encode())
+
+    commands = commands.strip("'")
+
+    for part in commands.split(" "):  # Split on space
+        ser.write((part + " ").encode())  # Add the space back
+        ser.flush()
+        time.sleep(0.01)  # 10ms delay between chunks
+
+    ser.write(b'\n')  # Final newline to trigger Arduino reading
+
+
     ser.flush()
     print("Data sent over serial successfully.")
 
     space_was_pressed = False
+    guiness_challnge = False
+    if guiness_challnge:
+        while True:   
+            if keyboard.is_pressed("space") and not space_was_pressed:
 
-    while True:   
-        if keyboard.is_pressed("space") and not space_was_pressed:
+                beep_in_thread()
+                
+                ser.write("start\n".encode())
+                print("Start signal sent to arduino")
+                #break
+                space_was_pressed = True
 
-            beep_in_thread()
-            
-            ser.write("start\n".encode())
-            print("Start signal sent to arduino")
-            #break
-            space_was_pressed = True
-
-        try:
-            if ser.in_waiting > 0:
+            try:
+                if ser.in_waiting > 0:
+                    data = ser.readline().decode().strip()
+                    print(data)
+                    if data == "done":
+                        beep_in_thread()
+                        break
+            finally:
+                time.sleep(0.001)
+    else:
+        ser.write("start\n".encode())
+        print("Start signal sent to arduino")
+        while True:
+            try:
                 data = ser.readline().decode().strip()
                 print(data)
-                if data == "done":
-                    beep_in_thread()
-                    break
-        finally:
-            time.sleep(0.001)
+            finally:
+                time.sleep(0.01)
 
 
 

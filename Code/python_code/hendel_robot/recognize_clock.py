@@ -11,16 +11,18 @@ centers_buffer = BufferManager(15,9)
 
 max_thresh = 255
 
-top_min_threshold = 32
-bottom_min_threshold = 54
+top_min_threshold = 95
+bottom_min_threshold = 145
 
 kernel_rate = 1
 
+#Parameters for the Hough Circle detection
 circle_param1 = 300
 circle_param2 = 20
 
-threshold1 = 24
-threshold2 = 46
+#Thresholds for the Hough Circle detection
+threshold1 = 103
+threshold2 = 133
 
 def rad_to_deg(radians):
     return radians * (180 / np.pi)
@@ -195,30 +197,51 @@ def read_clock(camera,color) -> list[int]:
         circles = cv2.HoughCircles(circle_edges, cv2.HOUGH_GRADIENT, 1, 35, param1=circle_param1, param2=circle_param2, minRadius=32, maxRadius=55)
         if (circles is None or len(circles.shape) == 1):
             cv2.imshow('Final', img)
-            cv2.waitKey(1)
-            continue
+            #cv2.waitKey(1)
+            # continue
         
+        # output = img_grayscale.copy()
+        # if circles is not None:
+        #     circles = np.uint16(np.around(circles))  # Round and convert to int
+        #     for (x, y, r) in circles[0, :]:
+        #         cv2.circle(output, (x, y), r, (0, 255, 0), 2)     # Draw the outer circle
+        #         cv2.circle(output, (x, y), 2, (0, 0, 255), 3)     # Draw the center
+
+        # # Show the result
+        # cv2.imshow("Detected Circles", output)
+
+
         cv2.imshow('CIRCLE EDGES', circle_edges)
         cv2.imshow('CIRCLE THRESHOLDED IMAGE', circle_thresh)
         cv2.imshow('TOP THRESHOLDED IMAGE', top_thresh)
         cv2.imshow('BOTTOM THRESHOLDED IMAGE', bottom_thresh)
+        cv2.imshow('GRAY SCALE IMAGE', img_grayscale)
 
-        circles = np.uint16(np.around(circles))
-        circles = np.squeeze(circles)
+
+        
         
         if (circles is None or len(circles.shape) == 1):
-            continue
-        if len(circles) != 9:
-            for circle_num in range(len(circles)):
-            
-                maxrad = circles[circle_num][2]
-                centre = (circles[circle_num, 0], circles[circle_num, 1])
-                
-                # Displaying Circle Around Clock
-                cv2.circle(img, centre, maxrad, (20, 90, 230), 2)
-                cv2.circle(img, centre, 2, (0, 0, 255), 3)
             show_final_img(img,color)
+            continue
+        circles2 = circles.copy()
+        circles = np.uint16(np.around(circles))
+        circles = np.squeeze(circles)
 
+        try:
+                   
+            if len(circles) != 9:
+                for circle_num in range(len(circles)):
+                    maxrad = circles[circle_num]
+                    centre = (circles[circle_num, 0], circles[circle_num, 1])
+                    
+                    # Displaying Circle Around Clock
+                    cv2.circle(img, centre, maxrad, (20, 90, 230), 2)
+                    cv2.circle(img, centre, 2, (0, 0, 255), 3)
+                show_final_img(img,color)
+        except Exception as e:
+            # print("Error in processing circles: ", e)
+            show_final_img(img,color)
+            continue
         if (len(circles) != 9):
             continue
         
@@ -314,7 +337,7 @@ def show_final_img(img,color =(0,0,0)):
     # Add the text above the circle and slightly to the left
     font = cv2.FONT_HERSHEY_SIMPLEX
     text_position = (circle_position[0] - 350, circle_position[1] + 5)  # Adjust the text position as needed
-    cv2.putText(img, 'The color of the top side is:', text_position, font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
+    cv2.putText(img, 'The color of the top side is:', text_position, font, 0.7, (125, 125, 125), 2, cv2.LINE_AA)
     
 
     cv2.imshow('Final', img)
@@ -346,6 +369,20 @@ def show_final_img(img,color =(0,0,0)):
     elif key == ord('8'):
         threshold2 +=1
         print("threshold2= ",threshold2)
+
+
+    elif key == ord('u'):
+        circle_param1 +=1
+        print("circle_param1= ",circle_param1)
+    elif key == ord('j'):
+        circle_param1 -=1
+        print("circle_param1= ",circle_param1)
+    elif key == ord('i'):
+        circle_param2 +=1
+        print("circle_param2= ",circle_param2)
+    elif key == ord('k'):
+        circle_param2 -=1
+        print("circle_param2= ",circle_param2)
 
     elif key == ord(' '):
         return True
