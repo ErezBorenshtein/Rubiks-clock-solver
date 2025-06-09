@@ -10,10 +10,10 @@
 
 
 //how much time the dolenoid needs current in order to successfully move the pin. tests show that 35ms is the minimal time
-//#define PUSHER_DELAY 35 //for full operation time
-#define PUSHER_DELAY 40  //for testing - relaxed mode
+#define PUSHER_DELAY 35 //for full operation time
+//#define PUSHER_DELAY 42  //for testing - relaxed mode
 
-#define TIMER_PIN 14
+//#define TIMER_PIN 14  //no need to define pin for timer, as it is handled by Serial3
 
 //motors rotation speed. 700 is the optimized
 #define ROATATION_SPEED 700
@@ -301,6 +301,7 @@ public:
     }
     
     //Serial.println("running command:" + command);
+    //delay(100);
     if (command[0] == 'r') {
       
       rotate(command);
@@ -348,6 +349,19 @@ String commands = "";
 
 void powerEnabler() {
   int mode;
+ 
+  digitalWrite(MOTOR_ENABLE_PIN, LOW);
+  do {
+    mode = digitalRead(LIMIT_PIN);
+  } while (mode == 1);
+
+  //Serial.println("setting enble to high");
+  digitalWrite(MOTOR_ENABLE_PIN, HIGH);
+  disablePins();
+}
+
+void powerEnablerNoInterrupt() {
+  int mode;
   //Serial.println("setting enble to low");
   delay(10);
   digitalWrite(MOTOR_ENABLE_PIN, LOW);
@@ -364,6 +378,9 @@ void powerEnabler() {
   delay(2000);
 }
 
+
+
+
 void waitForLimitLow() {
   while (true) {
     debouncer.update();
@@ -378,7 +395,6 @@ void waitForLimitLow() {
 void setup2() {
   Serial.begin(115200);
   Serial3.begin(115200);
-
   delay(50);
 
   debouncer.attach(LIMIT_PIN);
@@ -391,7 +407,7 @@ void setup2() {
   pinMode(LED_BUILTIN, OUTPUT);
 
   //pinMode(TIMER_PIN, OUTPUT);
-  digitalWrite(TIMER_PIN, LOW);
+  //digitalWrite(TIMER_PIN, LOW);
   //Serial.println("setting enable to low");
   digitalWrite(MOTOR_ENABLE_PIN, LOW);
   delay(10);
@@ -401,7 +417,7 @@ void setup2() {
   debouncer.attach(255);  //detach the bounce from the pin
 
   attachInterrupt(digitalPinToInterrupt(LIMIT_PIN), powerEnabler, CHANGE);
-  powerEnabler();
+  powerEnablerNoInterrupt();
   //UR1+ DR4- DL2- UL2- U3- R1+ D1- L3+ ALL5- y2 U2- R2+ D1+ L5- ALL0+
   //commands = "p01110000 r-2-2-2-2 p00110000 r-3-3-3-3 p00010000 r-3-3-3+4 p01010000 r+6+1+6+1 p01000000 r-4-5-4-4 p11000000 r-5-5+1+1 p11010000 r-2-2+1-2\n";
   //UR2+ DR4- DL5- UL1- U5- R1- D0+ L4+ ALL1+ y2 U4+ R1+ D3- L2+ ALL2-
@@ -427,18 +443,14 @@ void setup() {
 
   pinMode(LIMIT_PIN, INPUT_PULLUP);
   pinMode(MOTOR_ENABLE_PIN, OUTPUT);
-  //pinMode(TIMER_PIN, OUTPUT);
-
-
-  digitalWrite(TIMER_PIN, LOW);
+  
   delay(10);
-  digitalWrite(TIMER_PIN, HIGH);
-  //delay(10);
-  digitalWrite(TIMER_PIN, LOW);
   Serial.println ("Ready to start, close the robot");
+  delay (20);
   attachInterrupt(digitalPinToInterrupt(LIMIT_PIN), powerEnabler, CHANGE);
-  powerEnabler();
-
+  powerEnablerNoInterrupt();
+  
+  Serial.println("waiting for serial");
   // Wait for serial port to open
   while (!Serial) {
     delay(10);  // Wait for serial port to connect
@@ -446,6 +458,21 @@ void setup() {
 
   Serial.println("ready");  //!important! part of the protocol
   delay (50);
+
+
+
+
+  // delay(50);
+  // Serial3.println("reset");
+  // delay(50);
+  // Serial3.println("start");
+  // delay(2000);
+  // Serial3.println("stop");
+
+  // Serial.println("done");
+  // delay (1000000);
+
+  
   // while (commands == "") {
   //   if (Serial.available() > 0) {
   //     // Read the incoming data
@@ -454,18 +481,20 @@ void setup() {
   // }
 
   commands = "";
-  char incomingChar;
-
-  while (true) {
-    if (Serial.available()) {
-      incomingChar = Serial.read();
-      if (incomingChar == '\n') {
-        break;  // message complete
-      }
-      commands += incomingChar;
-      Serial.print(incomingChar);
-    }
-  }
+  
+  commands = "p01110000 r-2-4-4-4 p00010000 r-2-2-2-1 p01010000 r-1-1-1-1 p11000000 r+3+3+0+0 p11010000 r+3+3+5+3\n";
+  
+  // char incomingChar;
+  // while (true) {
+  //   if (Serial.available()) {
+  //     incomingChar = Serial.read();
+  //     if (incomingChar == '\n') {
+  //       break;  // message complete
+  //     }
+  //     commands += incomingChar;
+  //     Serial.print(incomingChar);
+  //   }
+  // }
   Serial.println("");
 
   // Print the received string
@@ -483,14 +512,14 @@ void setup() {
 //this is the real setup function that is used in the loop
 void loop() {
   //Serial.println((String)"mil 0: "+(String)millis());
-
+  Serial.println("waiting for serial");
   if (Serial.available()) {
     //Serial.println((String)"mil 1: "+(String)millis());
     //String command = Serial.readStringUntil("\n");
     ////Serial.println(command);
     //Serial.println((String)"mil 2: "+(String)millis());
     //if(command=="start\n"){
-
+    Serial.println("serial is available");
     unsigned long start_time = millis();
 
     Serial3.println("start");
@@ -549,7 +578,7 @@ void test_motor_rotation() {
 }
 
 void run_command_with_delay(String command) {
-  Serial.println("running command:" + command);
+  //Serial.println("running command:" + command);
   clockOperator.runCommand(command);
   delay(1000);
 }
