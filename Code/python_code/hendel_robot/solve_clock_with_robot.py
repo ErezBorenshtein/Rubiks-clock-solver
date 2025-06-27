@@ -71,7 +71,10 @@ def solve_with_camera():
     try:
         ser = serial.Serial("COM4",115200, timeout=1)   #windows
     except:
-        ser = serial.Serial("/dev/ttyUSB0",115200, timeout=1)   #linux
+        try:
+            ser = serial.Serial("/dev/ttyUSB0",115200, timeout=1)   #linux
+        except:
+            ser = serial.Serial("/dev/ttyUSB1",115200, timeout=1)   #linux
             
     print("Solving clock with camera")
     centers_buffer.prepare_positions(20,9)
@@ -97,16 +100,18 @@ def solve_with_camera():
     commands = clock.solve_clock_7_simul()
     commands = clock.prepare_commands(commands)
     commands = clock.optimize_commnds_7_simul(commands)+" \n"
-    print(commands)
+    print("commands (PC):" + commands)
     
                  
     #commands = "'p01110000 r-3+3+3+3 p00110000 r+5+5-1-1 p00010000 r-2-2-2+0 p01010000 r+0-5+0-5 p01000000 r+6+2+6+6 p11000000 r-1-1-1-1 p11010000 r+6+6-4+6 \n'"
     
     #commands = "p01110000 r-5-2-2-2 p00110000 r-5-5+3+3 p00010000 r-2-2-2-1 p01010000 p10100000 p01010000\n"
-    commands = "p01110000 r-2-4-4-4 p00010000 r-2-2-2-1 p01010000 r-1-1-1-1 p11000000 r+3+3+0+0 p11010000 r+3+3+5+3\n"
+    # commands = "p01110000 r-2-4-4-4 p00010000 r-2-2-2-1 p01010000 r-1-1-1-1 p11000000 r+3+3+0+0 p11010000 r+3+3+5+3\n"
 
     time.sleep(1)
-    
+    # commands = "p01110000 r+1+2+2+2 p00010000 r+4+4+4+2 p01010000 r+1+1+1+1 p01000000 r-3-5-3-3 p11000000 r+0+0-3-3"
+    # commands = "p00010000 r+4+4+4+2"
+    # commands = "p00000000"
     data = ""
 
     while(data != "ready"):
@@ -122,7 +127,7 @@ def solve_with_camera():
     for part in commands.split(" "):  # Split on space
         ser.write((part + " ").encode())  # Add the space back
         ser.flush()
-        time.sleep(0.01)  # 10ms delay between chunks
+        time.sleep(0.02)  # 10ms delay between chunks
 
     ser.write(b'\n')  # Final newline to trigger Arduino reading
 
@@ -154,8 +159,9 @@ def solve_with_camera():
                 time.sleep(0.001)
     else:
         ser.write("start\n".encode())
+        ser.flush()
         print("Start signal sent to arduino")
-        while True:
+        while True: 
             try:
                 data = ser.readline().decode().strip()
                 if data =="" or data == " ":

@@ -10,13 +10,16 @@
 
 
 //how much time the dolenoid needs current in order to successfully move the pin. tests show that 35ms is the minimal time
-#define PUSHER_DELAY 35 //for full operation time
+#define PUSHER_DELAY 39 //for full operation time
 //#define PUSHER_DELAY 42  //for testing - relaxed mode
+//works well - 40
 
 //#define TIMER_PIN 14  //no need to define pin for timer, as it is handled by Serial3
 
 //motors rotation speed. 700 is the optimized
-#define ROATATION_SPEED 700
+#define ROATATION_SPEED 640
+//works well - 500
+
 
 volatile const int stepPul[4] = { 48, 46, 44, 42 };
 volatile const int stepDir[4] = { 49, 47, 45, 43 };
@@ -206,7 +209,7 @@ public:
   }
 
   void rotate(String command) {
-    //Serial.println(command);
+    Serial.println(command);
 
     //TODO: check if the command is valid
     //check if pin's states is valid for rotation
@@ -424,7 +427,7 @@ void setup2() {
   //commands = "p01110000 r+4-2-2-2 p00110000 r-2-2-2-2 p00010000 r-4-4-4+4 p01010000 r-3+6-3+6 p01000000 r+6-3+6+6 p11000000 r-6-6+4+4 p11010000 r+0+0-3+0\n";
 
   //UR1- DR0+ DL4+ UL2+ U0+ R0+ D2+ L4+ ALL6+ y2 U5- R1- D1+ L2+ ALL3+
-  commands = "p01110000 r-5-2-2-2 p00110000 r-5-5+3+3 p00010000 r-2-2-2-1 p01010000 r-4-5-4-5 p01000000 r+5+6+5+5 p11000000 r-5-5-2-2 p11010000 r-1-1+1-1\n";
+  //commands = "p01110000 r-5-2-2-2 p00110000 r-5-5+3+3 p00010000 r-2-2-2-1 p01010000 r-4-5-4-5 p01000000 r+5+6+5+5 p11000000 r-5-5-2-2 p11010000 r-1-1+1-1\n";
   //commands = "p01110000 r-3-4-4-4 p00110000 r+0+0+0+0 p00010000 r-3-3-3+0 p01010000 r+3-5+3-5 p01000000 r+2+2+2+2 p11000000 r+0+0+0+0 p11010000 r-2-2+2-2\n";
 
   //clockOperator.reset();  //needed only after optimizing pin settings
@@ -440,7 +443,7 @@ void setup() {
   delay(50);
 
   Serial3.println("reset");
-
+  //Serial.println("-------------------------------------------------------------------");
   pinMode(LIMIT_PIN, INPUT_PULLUP);
   pinMode(MOTOR_ENABLE_PIN, OUTPUT);
   
@@ -462,39 +465,23 @@ void setup() {
 
 
 
-  // delay(50);
-  // Serial3.println("reset");
-  // delay(50);
-  // Serial3.println("start");
-  // delay(2000);
-  // Serial3.println("stop");
-
-  // Serial.println("done");
-  // delay (1000000);
-
-  
-  // while (commands == "") {
-  //   if (Serial.available() > 0) {
-  //     // Read the incoming data
-  //     commands = Serial.readStringUntil('\n');
-  //   }
-  // }
-
+  delay(50);
+  Serial3.println("reset");
   commands = "";
-  
-  commands = "p01110000 r-2-4-4-4 p00010000 r-2-2-2-1 p01010000 r-1-1-1-1 p11000000 r+3+3+0+0 p11010000 r+3+3+5+3\n";
-  
-  // char incomingChar;
-  // while (true) {
-  //   if (Serial.available()) {
-  //     incomingChar = Serial.read();
-  //     if (incomingChar == '\n') {
-  //       break;  // message complete
-  //     }
-  //     commands += incomingChar;
-  //     Serial.print(incomingChar);
-  //   }
-  // }
+  char incomingChar;
+  while (true) {
+    if (Serial.available()) {
+      if (commands == "")
+        Serial.println ("first char recieved");
+      incomingChar = Serial.read();
+      if (incomingChar == '\n') {
+        break;  // message complete
+      }
+      commands += incomingChar;
+      Serial.print(incomingChar);
+      
+    }
+  }
   Serial.println("");
 
   // Print the received string
@@ -514,17 +501,10 @@ void loop() {
   //Serial.println((String)"mil 0: "+(String)millis());
   Serial.println("waiting for serial");
   if (Serial.available()) {
-    //Serial.println((String)"mil 1: "+(String)millis());
-    //String command = Serial.readStringUntil("\n");
-    ////Serial.println(command);
-    //Serial.println((String)"mil 2: "+(String)millis());
-    //if(command=="start\n"){
     Serial.println("serial is available");
     unsigned long start_time = millis();
-
     Serial3.println("start");
     Serial.println("------start");
-
     clockOperator.solve(commands);
 
     Serial3.println("stop");

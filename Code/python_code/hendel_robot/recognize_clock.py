@@ -211,11 +211,11 @@ def read_clock(camera,color) -> list[int]:
         # cv2.imshow("Detected Circles", output)
 
 
-        cv2.imshow('CIRCLE EDGES', circle_edges)
-        cv2.imshow('CIRCLE THRESHOLDED IMAGE', circle_thresh)
-        cv2.imshow('TOP THRESHOLDED IMAGE', top_thresh)
-        cv2.imshow('BOTTOM THRESHOLDED IMAGE', bottom_thresh)
-        cv2.imshow('GRAY SCALE IMAGE', img_grayscale)
+        # cv2.imshow('CIRCLE EDGES', circle_edges)
+        # cv2.imshow('CIRCLE THRESHOLDED IMAGE', circle_thresh)
+        # cv2.imshow('TOP THRESHOLDED IMAGE', top_thresh)
+        # cv2.imshow('BOTTOM THRESHOLDED IMAGE', bottom_thresh)
+        # cv2.imshow('GRAY SCALE IMAGE', img_grayscale)
 
 
         
